@@ -4,6 +4,14 @@ set -e
 
 echo "🚀 Starting FormAgent AI application..."
 
+echo "🐳 Checking Docker status..."
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker is not running!"
+    echo "💡 Please start Docker Desktop and try again."
+    exit 1
+fi
+echo "✅ Docker is running!"
+
 echo "📊 Step 1: Starting MongoDB..."
 docker-compose up -d mongodb
 
