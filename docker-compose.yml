@@ -35,7 +35,7 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/
       ME_CONFIG_BASICAUTH: false
     ports:
-      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+      - "${MONGO_EXPRESS_PORT:-8082}:8081"
     networks:
       - formagent-network
 
