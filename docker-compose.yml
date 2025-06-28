@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -51,18 +49,37 @@ services:
       mongodb:
         condition: service_healthy
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=5000
       - MONGODB_URI=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-formagent}?authSource=admin
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://frontend:3000
     ports:
       - "${BACKEND_PORT:-5000}:5000"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
     networks:
       - formagent-network
-    command: npm run dev
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: formagent-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://localhost:5000
+      - VITE_WS_URL=ws://localhost:5000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - formagent-network
 
 volumes:
   mongodb_data:

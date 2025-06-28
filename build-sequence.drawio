@@ -1,112 +1,143 @@
 <mxfile host="app.diagrams.net" modified="2025-06-28T00:00:00.000Z" agent="5.0" etag="abc123" version="24.7.14" type="device">
-  <diagram name="Build-Sequence" id="build-sequence-diagram">
-    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <diagram name="FormAgent-Architecture" id="architecture-diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         
         <!-- Title -->
-        <mxCell id="title" value="FormAgent AI - Build Sequence Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="250" y="20" width="327" height="30" as="geometry" />
+        <mxCell id="title" value="FormAgent AI - Architecture &amp; Network Communication" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="470" height="40" as="geometry" />
         </mxCell>
 
-        <!-- Database Layer -->
-        <mxCell id="mongo-container" value="MongoDB Container&#xa;(mongo:7.0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="100" y="100" width="140" height="60" as="geometry" />
+        <!-- User/Browser -->
+        <mxCell id="browser" value="User Browser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="515" y="100" width="140" height="60" as="geometry" />
         </mxCell>
 
-        <!-- Mongo Express -->
-        <mxCell id="mongo-express" value="Mongo Express&#xa;(mongo-express:1.0.2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="300" y="100" width="140" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- Backend Build -->
-        <mxCell id="backend-build" value="Backend Build&#xa;(Node.js 18 Alpine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="100" y="220" width="140" height="60" as="geometry" />
+        <!-- Frontend Container -->
+        <mxCell id="frontend" value="Frontend Container&#xa;(React + Vite)&#xa;Port: 3000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="515" y="240" width="140" height="80" as="geometry" />
         </mxCell>
 
         <!-- Backend Container -->
-        <mxCell id="backend-container" value="Backend Container&#xa;(Express.js Server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="100" y="340" width="140" height="60" as="geometry" />
+        <mxCell id="backend" value="Backend Container&#xa;(Express.js + Socket.io)&#xa;Port: 5000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="515" y="400" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <!-- Frontend Build -->
-        <mxCell id="frontend-build" value="Frontend Build&#xa;(Vite + React)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="500" y="220" width="140" height="60" as="geometry" />
+        <!-- MongoDB Container -->
+        <mxCell id="mongodb" value="MongoDB Container&#xa;(mongo:7.0)&#xa;Port: 27017" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="560" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <!-- Frontend Serve -->
-        <mxCell id="frontend-serve" value="Frontend Serve&#xa;(Development Server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="500" y="340" width="140" height="60" as="geometry" />
+        <!-- Mongo Express -->
+        <mxCell id="mongo-express" value="Mongo Express&#xa;(mongo-express:1.0.2)&#xa;Port: 8081" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="750" y="560" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <!-- Build Steps -->
-        <mxCell id="step1" value="1. Docker Infrastructure" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#0066cc;" vertex="1" parent="1">
-          <mxGeometry x="50" y="70" width="180" height="20" as="geometry" />
+        <!-- AI Service -->
+        <mxCell id="ai-service" value="AI Service&#xa;(OpenAI/Azure)&#xa;External API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="400" width="140" height="80" as="geometry" />
         </mxCell>
 
-        <mxCell id="step2" value="2. Backend Build" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#0066cc;" vertex="1" parent="1">
-          <mxGeometry x="50" y="190" width="120" height="20" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step3" value="3. Frontend Build" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#0066cc;" vertex="1" parent="1">
-          <mxGeometry x="450" y="190" width="120" height="20" as="geometry" />
-        </mxCell>
-
-        <!-- Arrows for sequence -->
-        <mxCell id="arrow1" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="mongo-container" target="backend-build">
+        <!-- HTTP Connections -->
+        <mxCell id="http1" value="HTTP/HTTPS" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="browser" target="frontend">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="170" y="180" as="sourcePoint" />
-            <mxPoint x="220" y="130" as="targetPoint" />
+            <mxPoint x="585" y="200" as="sourcePoint" />
+            <mxPoint x="585" y="240" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="arrow2" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="backend-build" target="backend-container">
+        <mxCell id="http2" value="REST API&#xa;HTTP" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="frontend" target="backend">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="170" y="300" as="sourcePoint" />
-            <mxPoint x="220" y="250" as="targetPoint" />
+            <mxPoint x="585" y="340" as="sourcePoint" />
+            <mxPoint x="585" y="380" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="arrow3" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="backend-container" target="frontend-build">
+        <!-- WebSocket Connection -->
+        <mxCell id="websocket" value="WebSocket&#xa;(Socket.io)" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff6666;dashed=1;" edge="1" parent="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="250" y="370" as="sourcePoint" />
-            <mxPoint x="490" y="250" as="targetPoint" />
+            <mxPoint x="655" y="280" as="sourcePoint" />
+            <mxPoint x="655" y="440" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="700" y="280" />
+              <mxPoint x="700" y="440" />
+            </Array>
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="arrow4" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="frontend-build" target="frontend-serve">
+        <!-- MongoDB Connection -->
+        <mxCell id="mongo-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" edge="1" parent="1" source="backend" target="mongodb">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="570" y="300" as="sourcePoint" />
-            <mxPoint x="620" y="250" as="targetPoint" />
+            <mxPoint x="515" y="480" as="sourcePoint" />
+            <mxPoint x="420" y="560" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- Dependency arrow from mongo to mongo-express -->
-        <mxCell id="mongo-dependency" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;dashed=1;" edge="1" parent="1" source="mongo-container" target="mongo-express">
+        <!-- AI Service Connection -->
+        <mxCell id="ai-conn" value="HTTPS&#xa;API Calls" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="backend" target="ai-service">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="250" y="130" as="sourcePoint" />
-            <mxPoint x="300" y="130" as="targetPoint" />
+            <mxPoint x="655" y="440" as="sourcePoint" />
+            <mxPoint x="750" y="440" as="targetPoint" />
           </mxGeometry>
         </mxCell>
 
-        <!-- Build commands and details -->
-        <mxCell id="docker-commands" value="Docker Commands:&#xa;• docker-compose up -d mongodb&#xa;• docker-compose up -d mongo-express&#xa;• docker-compose build backend&#xa;• docker-compose up -d backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="50" y="450" width="250" height="80" as="geometry" />
+        <!-- Mongo Express Connection -->
+        <mxCell id="mexpress-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" edge="1" parent="1" source="mongo-express" target="mongodb">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="750" y="600" as="sourcePoint" />
+            <mxPoint x="420" y="600" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
 
-        <mxCell id="frontend-commands" value="Frontend Commands:&#xa;• npm install&#xa;• npm run build&#xa;• npm run dev (development)&#xa;• npm run preview (production)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="450" y="450" width="250" height="80" as="geometry" />
+        <!-- Admin Browser Connection -->
+        <mxCell id="admin-conn" value="HTTP&#xa;Admin UI" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff9900;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="160" as="sourcePoint" />
+            <mxPoint x="820" y="560" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="620" y="180" />
+              <mxPoint x="950" y="180" />
+              <mxPoint x="950" y="540" />
+              <mxPoint x="820" y="540" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- Network connections -->
-        <mxCell id="network" value="formagent-network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=12;fontStyle=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="300" y="560" width="200" height="30" as="geometry" />
+        <!-- Docker Network -->
+        <mxCell id="docker-network" value="Docker Network: formagent-network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=14;fontStyle=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="350" width="770" height="340" as="geometry" />
         </mxCell>
 
-        <!-- Ports information -->
-        <mxCell id="ports-info" value="Ports:&#xa;MongoDB: 27017&#xa;Mongo Express: 8081&#xa;Backend: 5000&#xa;Frontend: 3000 (dev)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="550" y="100" width="120" height="100" as="geometry" />
+        <!-- Communication Details -->
+        <mxCell id="comm-details" value="Communication Types:&#xa;• HTTP/REST: Form data, AI requests&#xa;• WebSocket: Real-time updates, form processing status&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="710" width="380" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Build Order -->
+        <mxCell id="build-order" value="Docker Compose Build Order:&#xa;1. MongoDB (with health check)&#xa;2. Mongo Express (depends on MongoDB)&#xa;3. Backend (depends on MongoDB)&#xa;4. Frontend (depends on Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="450" y="710" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Docker Commands -->
+        <mxCell id="docker-cmds" value="Docker Commands:&#xa;• docker-compose up -d&#xa;• docker-compose down&#xa;• docker-compose logs -f [service]&#xa;• docker-compose ps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="750" y="710" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- WebSocket Details -->
+        <mxCell id="ws-details" value="WebSocket Events:&#xa;• form:processing&#xa;• form:completed&#xa;• form:error&#xa;• ai:generating" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="720" y="320" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- API Endpoints -->
+        <mxCell id="api-endpoints" value="API Endpoints:&#xa;/api/forms&#xa;/api/submissions&#xa;/api/ai/generate-form&#xa;/api/health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Volumes -->
+        <mxCell id="volumes" value="Docker Volumes:&#xa;• mongodb_data&#xa;• mongodb_config&#xa;• node_modules (backend)&#xa;• node_modules (frontend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="560" width="150" height="80" as="geometry" />
         </mxCell>
 
       </root>
