@@ -1,6 +1,21 @@
-import { OpenAIApi } from '@azure/openai';
-import { AzureKeyCredential } from '@azure/core-auth';
-import OpenAI from 'openai';
+// For now, disable the AI service to focus on WebSocket functionality
+const AI_DISABLED = true;
+
+// Conditional imports to avoid module errors
+let OpenAIApi, AzureKeyCredential, OpenAI;
+
+if (!AI_DISABLED) {
+  try {
+    const azureModule = await import('@azure/openai');
+    OpenAIApi = azureModule.OpenAIApi;
+    const coreAuth = await import('@azure/core-auth');
+    AzureKeyCredential = coreAuth.AzureKeyCredential;
+    const openaiModule = await import('openai');
+    OpenAI = openaiModule.default;
+  } catch (error) {
+    console.warn('AI modules not available:', error.message);
+  }
+}
 
 class AIService {
   constructor() {
@@ -9,6 +24,11 @@ class AIService {
   }
 
   initializeClient() {
+    if (AI_DISABLED) {
+      console.log('AI Service disabled for WebSocket demo');
+      return;
+    }
+    
     if (this.aiProvider === 'azure') {
       if (!process.env.AZURE_OPENAI_ENDPOINT || !process.env.AZURE_OPENAI_API_KEY) {
         console.warn('Azure OpenAI credentials not configured');

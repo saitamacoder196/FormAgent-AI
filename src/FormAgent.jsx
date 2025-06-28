@@ -1,5 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Download, Copy, Trash2, Settings, Eye, Edit3, Plus, X } from 'lucide-react';
+import { io } from 'socket.io-client';
+import { 
+  Button, 
+  Input, 
+  Select, 
+  Radio, 
+  Checkbox, 
+  DatePicker, 
+  Form, 
+  Card, 
+  Space, 
+  Typography, 
+  Divider, 
+  Badge, 
+  Tag, 
+  Alert, 
+  ConfigProvider 
+} from 'antd';
+import { 
+  SendOutlined, 
+  RobotOutlined, 
+  UserOutlined, 
+  DownloadOutlined, 
+  DeleteOutlined, 
+  SettingOutlined, 
+  EyeOutlined, 
+  EditOutlined, 
+  PlusOutlined, 
+  CloseOutlined 
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+
+const { TextArea } = Input;
+const { Option } = Select;
+const { Title, Paragraph, Text } = Typography;
 
 const FieldEditor = ({ field, index, onUpdate, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -29,101 +64,106 @@ const FieldEditor = ({ field, index, onUpdate, onDelete }) => {
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
+    <Card 
+      size="small" 
+      style={{ backgroundColor: '#fff', border: '1px solid #ff7a00' }}
+    >
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
-          <button
+          <Button 
+            type="text" 
+            size="small"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-sm font-medium text-gray-800 hover:text-blue-600"
+            style={{ color: '#ff7a00', fontWeight: 500 }}
           >
             {isExpanded ? '▼' : '▶'} Field #{index + 1}: {field.label || 'Untitled'}
-          </button>
-          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+          </Button>
+          <Tag color="orange">
             {fieldTypes.find(t => t.value === field.type)?.label || field.type}
-          </span>
+          </Tag>
           {field.required && (
-            <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded">Required</span>
+            <Tag color="red">Required</Tag>
           )}
         </div>
-        <button
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<CloseOutlined />}
           onClick={onDelete}
-          className="p-1 text-red-600 hover:bg-red-50 rounded"
           title="Delete Field"
-        >
-          <X size={16} />
-        </button>
+        />
       </div>
 
       {isExpanded && (
-        <div className="space-y-4 mt-4 border-t border-gray-100 pt-4">
+        <div className="space-y-4 mt-4 border-t border-orange-100 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Field ID</label>
-              <input
-                type="text"
+              <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Field ID</Text>
+              <Input
                 value={field.id}
                 onChange={(e) => updateFieldProperty('id', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                style={{ borderColor: '#ff7a00' }}
+                size="small"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
-              <input
-                type="text"
+              <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Label</Text>
+              <Input
                 value={field.label}
                 onChange={(e) => updateFieldProperty('label', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                style={{ borderColor: '#ff7a00' }}
+                size="small"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Field Type</label>
-              <select
+              <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Field Type</Text>
+              <Select
                 value={field.type}
-                onChange={(e) => updateFieldProperty('type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                onChange={(value) => updateFieldProperty('type', value)}
+                style={{ width: '100%', borderColor: '#ff7a00' }}
+                size="small"
               >
                 {fieldTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
+                  <Option key={type.value} value={type.value}>{type.label}</Option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
-              <input
-                type="text"
+              <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Placeholder</Text>
+              <Input
                 value={field.placeholder || ''}
                 onChange={(e) => updateFieldProperty('placeholder', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                style={{ borderColor: '#ff7a00' }}
+                size="small"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={field.required || false}
-                onChange={(e) => updateFieldProperty('required', e.target.checked)}
-                className="text-blue-600"
-              />
-              <span className="text-sm font-medium text-gray-700">Required Field</span>
-            </label>
+            <Checkbox
+              checked={field.required || false}
+              onChange={(e) => updateFieldProperty('required', e.target.checked)}
+              style={{ color: '#ff7a00' }}
+            >
+              <Text style={{ color: '#ff7a00', fontWeight: 500 }}>Required Field</Text>
+            </Checkbox>
           </div>
 
           {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>
                 Options (one per line)
-              </label>
-              <textarea
+              </Text>
+              <TextArea
                 value={(field.options || []).join('\n')}
                 onChange={(e) => updateOptions(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="Option 1&#10;Option 2&#10;Option 3"
+                style={{ borderColor: '#ff7a00' }}
+                placeholder="Option 1\nOption 2\nOption 3"
               />
             </div>
           )}
@@ -152,7 +192,7 @@ const FieldEditor = ({ field, index, onUpdate, onDelete }) => {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 
@@ -166,6 +206,8 @@ const FormAgent = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [clientId, setClientId] = useState(null);
   const [formData, setFormData] = useState({
     title: 'Form mẫu',
     description: 'Điền thông tin bên dưới',
@@ -216,13 +258,245 @@ const FormAgent = () => {
     scrollToBottom();
   }, [messages]);
 
+  // WebSocket connection setup
+  useEffect(() => {
+    const newSocket = io('http://localhost:5000');
+    const id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    setSocket(newSocket);
+    setClientId(id);
+
+    newSocket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+      newSocket.emit('join-room', id);
+    });
+
+    newSocket.on('form-processed', (data) => {
+      console.log('Received processed form:', data);
+      setIsLoading(false);
+      
+      if (data.success) {
+        setFormData(data.form);
+        setFormValues({});
+        
+        const botResponse = {
+          id: Date.now(),
+          type: 'bot',
+          content: `✅ Đã tạo form "${data.form.title}" với ${data.form.fields.length} trường thông tin qua WebSocket! 🔌`
+        };
+        setMessages(prev => [...prev, botResponse]);
+      } else {
+        const errorResponse = {
+          id: Date.now(),
+          type: 'bot',
+          content: '❌ Có lỗi khi xử lý form qua WebSocket: ' + (data.message || data.error)
+        };
+        setMessages(prev => [...prev, errorResponse]);
+        
+        // Fallback to local processing
+        const fallbackForm = createFallbackForm(data.prompt || 'form cơ bản');
+        setFormData(fallbackForm);
+        setFormValues({});
+      }
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+    });
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  const generateMockFormFromPrompt = (prompt) => {
+    const lowerPrompt = prompt.toLowerCase();
+    const fields = [];
+    let title = 'Form thông tin';
+    let description = 'Vui lòng điền thông tin bên dưới';
+    let introduction = 'Đây là form thu thập thông tin được tạo tự động.';
+    let triggerPhrases = ['thông tin', 'form'];
+
+    // Analyze prompt for specific fields
+    if (lowerPrompt.includes('đăng ký') || lowerPrompt.includes('registration')) {
+      title = 'Form đăng ký';
+      description = 'Form đăng ký thông tin';
+      introduction = 'Vui lòng điền đầy đủ thông tin để hoàn tất quá trình đăng ký.';
+      triggerPhrases = ['đăng ký', 'registration', 'sign up'];
+    }
+
+    if (lowerPrompt.includes('khóa học') || lowerPrompt.includes('course')) {
+      title = 'Form đăng ký khóa học';
+      description = 'Đăng ký tham gia khóa học';
+      introduction = 'Đăng ký khóa học để nhận được thông tin chi tiết và được tư vấn.';
+      triggerPhrases = ['khóa học', 'course', 'đào tạo'];
+    }
+
+    if (lowerPrompt.includes('liên hệ') || lowerPrompt.includes('contact')) {
+      title = 'Form liên hệ';
+      description = 'Gửi thông tin liên hệ';
+      introduction = 'Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.';
+      triggerPhrases = ['liên hệ', 'contact', 'hỗ trợ'];
+    }
+
+    // Add fields based on prompt content
+    if (lowerPrompt.includes('tên') || lowerPrompt.includes('họ') || lowerPrompt.includes('name')) {
+      fields.push({
+        id: 'name',
+        label: 'Họ và tên',
+        type: 'text',
+        required: true,
+        placeholder: 'Nhập họ và tên...'
+      });
+    }
+
+    if (lowerPrompt.includes('email')) {
+      fields.push({
+        id: 'email',
+        label: 'Email',
+        type: 'email',
+        required: true,
+        placeholder: 'example@email.com'
+      });
+    }
+
+    if (lowerPrompt.includes('điện thoại') || lowerPrompt.includes('sdt') || lowerPrompt.includes('phone')) {
+      fields.push({
+        id: 'phone',
+        label: 'Số điện thoại',
+        type: 'tel',
+        required: true,
+        placeholder: '0123456789'
+      });
+    }
+
+    if (lowerPrompt.includes('tuổi') || lowerPrompt.includes('age')) {
+      fields.push({
+        id: 'age',
+        label: 'Tuổi',
+        type: 'number',
+        required: false,
+        placeholder: 'Nhập tuổi...'
+      });
+    }
+
+    if (lowerPrompt.includes('địa chỉ') || lowerPrompt.includes('address')) {
+      fields.push({
+        id: 'address',
+        label: 'Địa chỉ',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Nhập địa chỉ...'
+      });
+    }
+
+    if (lowerPrompt.includes('kinh nghiệm') || lowerPrompt.includes('experience')) {
+      fields.push({
+        id: 'experience',
+        label: 'Mức độ kinh nghiệm',
+        type: 'select',
+        required: true,
+        placeholder: 'Chọn mức độ kinh nghiệm',
+        options: ['Mới bắt đầu', 'Trung bình', 'Có kinh nghiệm', 'Chuyên gia']
+      });
+    }
+
+    if (lowerPrompt.includes('giới tính') || lowerPrompt.includes('gender')) {
+      fields.push({
+        id: 'gender',
+        label: 'Giới tính',
+        type: 'radio',
+        required: false,
+        options: ['Nam', 'Nữ', 'Khác']
+      });
+    }
+
+    if (lowerPrompt.includes('sở thích') || lowerPrompt.includes('hobby') || lowerPrompt.includes('interest')) {
+      fields.push({
+        id: 'interests',
+        label: 'Sở thích',
+        type: 'checkbox',
+        required: false,
+        options: ['Đọc sách', 'Du lịch', 'Thể thao', 'Âm nhạc', 'Công nghệ']
+      });
+    }
+
+    if (lowerPrompt.includes('ngày sinh') || lowerPrompt.includes('birthday') || lowerPrompt.includes('date')) {
+      fields.push({
+        id: 'birthday',
+        label: 'Ngày sinh',
+        type: 'date',
+        required: false,
+        placeholder: 'Chọn ngày sinh'
+      });
+    }
+
+    if (lowerPrompt.includes('ghi chú') || lowerPrompt.includes('note') || lowerPrompt.includes('message')) {
+      fields.push({
+        id: 'note',
+        label: 'Ghi chú',
+        type: 'textarea',
+        required: false,
+        placeholder: 'Nhập ghi chú (tùy chọn)...'
+      });
+    }
+
+    // Default fields if none detected
+    if (fields.length === 0) {
+      fields.push(
+        {
+          id: 'name',
+          label: 'Họ và tên',
+          type: 'text',
+          required: true,
+          placeholder: 'Nhập họ và tên...'
+        },
+        {
+          id: 'email',
+          label: 'Email',
+          type: 'email',
+          required: true,
+          placeholder: 'example@email.com'
+        }
+      );
+    }
+
+    const mockForm = {
+      title: title,
+      description: description,
+      introduction: introduction,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      triggerPhrases: triggerPhrases,
+      emailConfig: {
+        enabled: true,
+        recipientEmail: 'admin@company.com',
+        subject: 'New form submission: ' + title,
+        template: 'Có form submission mới từ ' + title
+      },
+      apiConfig: {
+        enabled: false,
+        endpoint: '',
+        method: 'POST',
+        headers: {},
+        customHeaders: ''
+      },
+      fields: fields
+    };
+
+    return JSON.stringify(mockForm, null, 2);
+  };
+
   const generateForm = async (prompt) => {
     try {
-      const formPrompt = 'Tạo form dựa trên yêu cầu: "' + prompt + '"\n\nTrả lời CHÍNH XÁC theo format JSON này:\n{\n  "title": "Tên form phù hợp",\n  "description": "Mô tả ngắn gọn về form",\n  "introduction": "Lời giới thiệu chi tiết về form này",\n  "startDate": "2024-01-01",\n  "endDate": "2024-12-31",\n  "triggerPhrases": ["từ khóa 1", "từ khóa 2"],\n  "emailConfig": {\n    "enabled": true,\n    "recipientEmail": "admin@company.com",\n    "subject": "New form submission",\n    "template": "New submission received"\n  },\n  "apiConfig": {\n    "enabled": true,\n    "endpoint": "https://api.company.com/submit",\n    "method": "POST"\n  },\n  "fields": [\n    {\n      "id": "field_id",\n      "label": "Tên trường",\n      "type": "text",\n      "required": true,\n      "placeholder": "Nhập thông tin..."\n    }\n  ]\n}\n\nCHỈ TRẢ VỀ JSON, KHÔNG CÓ TEXT KHÁC.';
-
-      const response = await window.claude.complete(formPrompt);
+      // Mock AI response based on prompt analysis
+      const mockAIResponse = generateMockFormFromPrompt(prompt);
       
-      let cleanResponse = response.trim();
+      let cleanResponse = mockAIResponse.trim();
       
       if (cleanResponse.startsWith('```json')) {
         cleanResponse = cleanResponse.replace(/```json\n?/, '').replace(/\n?```$/, '');
@@ -377,41 +651,74 @@ const FormAgent = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const generatedForm = await generateForm(inputValue);
+      // Call new API endpoint
+      const response = await fetch('http://localhost:5000/api/process-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: currentInput,
+          clientId: clientId
+        }),
+      });
+
+      const result = await response.json();
       
-      if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
-        setFormData(generatedForm);
-        setFormValues({});
-        
-        const isComplete = isFormValid();
-        const botResponse = {
+      if (result.success) {
+        // Show processing message
+        const processingResponse = {
           id: Date.now() + 1,
           type: 'bot',
-          content: '✅ Đã tạo form "' + generatedForm.title + '" với ' + generatedForm.fields.length + ' trường thông tin. ' + (isComplete ? 'Form đã đầy đủ thông tin!' : '⚠️ Form cần bổ sung thêm thông tin.')
+          content: '🔄 Đang xử lý yêu cầu của bạn qua WebSocket server... Vui lòng chờ!'
         };
-        setMessages(prev => [...prev, botResponse]);
+        setMessages(prev => [...prev, processingResponse]);
+        
+        // The actual form will be received via WebSocket
       } else {
-        throw new Error('Invalid form generated');
+        throw new Error(result.error || 'API call failed');
       }
     } catch (error) {
-      console.error('Form generation error:', error);
+      console.error('API call error:', error);
+      setIsLoading(false);
+      
       const errorResponse = {
         id: Date.now() + 1,
         type: 'bot',
-        content: '❌ Có lỗi khi tạo form từ AI. Tôi đã tạo form cơ bản cho bạn.'
+        content: '❌ Không thể kết nối đến server. Sử dụng xử lý local...'
       };
       setMessages(prev => [...prev, errorResponse]);
       
-      const fallbackForm = createFallbackForm(inputValue);
-      setFormData(fallbackForm);
-      setFormValues({});
+      // Fallback to local processing
+      try {
+        const generatedForm = await generateForm(currentInput);
+        
+        if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
+          setFormData(generatedForm);
+          setFormValues({});
+          
+          const botResponse = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: '✅ Đã tạo form "' + generatedForm.title + '" với ' + generatedForm.fields.length + ' trường thông tin (local).'
+          };
+          setMessages(prev => [...prev, botResponse]);
+        } else {
+          const fallbackForm = createFallbackForm(currentInput);
+          setFormData(fallbackForm);
+          setFormValues({});
+        }
+      } catch (localError) {
+        const fallbackForm = createFallbackForm(currentInput);
+        setFormData(fallbackForm);
+        setFormValues({});
+      }
     }
-
-    setIsLoading(false);
   };
 
   const handleInputChange = (fieldId, value) => {
@@ -490,96 +797,106 @@ const FormAgent = () => {
   const renderField = (field) => {
     const commonProps = {
       id: field.id,
-      required: field.required,
-      className: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+      placeholder: field.placeholder,
       value: formValues[field.id] || '',
-      onChange: (e) => handleInputChange(field.id, e.target.value)
+      onChange: (e) => handleInputChange(field.id, e.target.value),
+      style: { borderColor: '#ff7a00' }
     };
 
     switch (field.type) {
       case 'textarea':
         return (
-          <textarea
+          <TextArea
             {...commonProps}
-            placeholder={field.placeholder}
             rows={4}
           />
         );
       
       case 'select':
         return (
-          <select {...commonProps}>
-            <option value="">{field.placeholder || 'Chọn một tùy chọn'}</option>
+          <Select
+            {...commonProps}
+            style={{ width: '100%', borderColor: '#ff7a00' }}
+            onChange={(value) => handleInputChange(field.id, value)}
+            placeholder={field.placeholder || 'Chọn một tùy chọn'}
+          >
             {(field.options || []).map((option, idx) => (
-              <option key={idx} value={option}>{option}</option>
+              <Option key={idx} value={option}>{option}</Option>
             ))}
-          </select>
+          </Select>
         );
       
       case 'radio':
         return (
-          <div className="space-y-2">
+          <Radio.Group 
+            value={formValues[field.id]}
+            onChange={(e) => handleInputChange(field.id, e.target.value)}
+            style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+          >
             {(field.options || []).map((option, idx) => (
-              <label key={idx} className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name={field.id}
-                  value={option}
-                  checked={formValues[field.id] === option}
-                  onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="text-blue-600"
-                />
-                <span>{option}</span>
-              </label>
+              <Radio key={idx} value={option} style={{ color: '#ff7a00' }}>
+                {option}
+              </Radio>
             ))}
-          </div>
+          </Radio.Group>
         );
       
       case 'checkbox':
         return (
-          <div className="space-y-2">
+          <Checkbox.Group 
+            value={formValues[field.id] || []}
+            onChange={(values) => handleInputChange(field.id, values)}
+            style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+          >
             {(field.options || []).map((option, idx) => (
-              <label key={idx} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  value={option}
-                  checked={(formValues[field.id] || []).includes(option)}
-                  onChange={(e) => {
-                    const currentValues = formValues[field.id] || [];
-                    const newValues = e.target.checked
-                      ? [...currentValues, option]
-                      : currentValues.filter(v => v !== option);
-                    handleInputChange(field.id, newValues);
-                  }}
-                  className="text-blue-600"
-                />
-                <span>{option}</span>
-              </label>
+              <Checkbox key={idx} value={option} style={{ color: '#ff7a00' }}>
+                {option}
+              </Checkbox>
             ))}
-          </div>
+          </Checkbox.Group>
+        );
+      
+      case 'date':
+        return (
+          <DatePicker
+            {...commonProps}
+            style={{ width: '100%', borderColor: '#ff7a00' }}
+            onChange={(date, dateString) => handleInputChange(field.id, dateString)}
+          />
         );
       
       default:
         return (
-          <input
+          <Input
             {...commonProps}
             type={field.type}
-            placeholder={field.placeholder}
           />
         );
     }
   };
 
+  const orangeTheme = {
+    token: {
+      colorPrimary: '#ff7a00',
+      colorPrimaryHover: '#ff9500',
+      colorPrimaryActive: '#e65f00',
+      colorBgContainer: '#ffffff',
+      colorBgElevated: '#fff7f0',
+      borderRadius: 8,
+    },
+  };
+
   return (
-    <div className="h-screen flex bg-gray-100">
-      <div className="w-1/2 flex flex-col bg-white border-r border-gray-200">
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Bot size={24} />
-            FormAgent - AI Form Builder
-          </h1>
-          <p className="text-blue-100 text-sm mt-1">Mô tả form bạn muốn tạo</p>
-        </div>
+    <ConfigProvider theme={orangeTheme}>
+      <div className="h-screen flex" style={{ backgroundColor: '#fff7f0' }}>
+        <div className="w-1/2 flex flex-col bg-white" style={{ borderRight: '1px solid #ff7a00' }}>
+          <div className="p-4" style={{ borderBottom: '1px solid #ff7a00', background: 'linear-gradient(90deg, #ff7a00 0%, #ff9500 100%)', color: 'white' }}>
+            <Title level={3} style={{ color: 'white', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <RobotOutlined style={{ fontSize: '24px' }} />
+              FormAgent - AI Form Builder
+            </Title>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>Mô tả form bạn muốn tạo</Text>
+          </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
@@ -587,269 +904,325 @@ const FormAgent = () => {
               key={message.id}
               className={'flex items-start gap-3 ' + (message.type === 'user' ? 'flex-row-reverse' : '')}
             >
-              <div className={'p-2 rounded-full ' + (message.type === 'user' ? 'bg-blue-500' : 'bg-gray-500')}>
+              <div 
+                style={{ 
+                  padding: '8px', 
+                  borderRadius: '50%', 
+                  backgroundColor: message.type === 'user' ? '#ff7a00' : '#666',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
                 {message.type === 'user' ? (
-                  <User size={16} className="text-white" />
+                  <UserOutlined style={{ fontSize: '16px' }} />
                 ) : (
-                  <Bot size={16} className="text-white" />
+                  <RobotOutlined style={{ fontSize: '16px' }} />
                 )}
               </div>
-              <div
-                className={'max-w-xs lg:max-w-md px-4 py-2 rounded-lg ' + (message.type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800')}
+              <Card 
+                size="small" 
+                className={'max-w-xs lg:max-w-md'}
+                style={{ 
+                  backgroundColor: message.type === 'user' ? '#ff7a00' : '#f5f5f5',
+                  color: message.type === 'user' ? 'white' : '#333',
+                  border: message.type === 'user' ? '1px solid #ff7a00' : '1px solid #ddd'
+                }}
               >
                 {message.content}
-              </div>
+              </Card>
             </div>
           ))}
           
           {isLoading && (
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-full bg-gray-500">
-                <Bot size={16} className="text-white" />
+              <div style={{ 
+                padding: '8px', 
+                borderRadius: '50%', 
+                backgroundColor: '#666',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <RobotOutlined style={{ fontSize: '16px' }} />
               </div>
-              <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
+              <Card 
+                size="small" 
+                style={{ backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}
+              >
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100"></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200"></div>
+                  <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#ff7a00' }}></div>
+                  <div className="w-2 h-2 rounded-full animate-bounce delay-100" style={{ backgroundColor: '#ff7a00' }}></div>
+                  <div className="w-2 h-2 rounded-full animate-bounce delay-200" style={{ backgroundColor: '#ff7a00' }}></div>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex gap-2">
-            <input
-              type="text"
+        <div className="p-4" style={{ borderTop: '1px solid #ff7a00' }}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
+              onPressEnter={() => !isLoading && handleSendMessage()}
               placeholder="Mô tả form bạn muốn tạo..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
+              style={{ borderColor: '#ff7a00' }}
             />
-            <button
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
               onClick={handleSendMessage}
               disabled={isLoading || !inputValue.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send size={16} />
-            </button>
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
+              style={{ backgroundColor: '#ff7a00', borderColor: '#ff7a00' }}
+            />
+          </Space.Compact>
+          <Text style={{ fontSize: '12px', color: '#666', marginTop: '8px', display: 'block' }}>
             Ví dụ: "Tạo form đăng ký khóa học với họ tên, email, số điện thoại"
-          </div>
+          </Text>
         </div>
       </div>
 
-      <div className="w-1/2 flex flex-col bg-gray-50">
-        <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
+      <div className="w-1/2 flex flex-col" style={{ backgroundColor: '#fff7f0' }}>
+        <div className="p-4 bg-white flex justify-between items-center" style={{ borderBottom: '1px solid #ff7a00' }}>
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">
+            <Title level={4} style={{ color: '#ff7a00', margin: 0 }}>
               {previewMode === 'preview' ? 'Preview Form' : 'Edit Form'}
-            </h2>
-            <p className="text-sm text-gray-600">
+            </Title>
+            <Text style={{ color: '#666', fontSize: '14px' }}>
               {previewMode === 'preview' ? 'Xem trước form được tạo' : 'Chỉnh sửa chi tiết form'}
-            </p>
+            </Text>
           </div>
-          <div className="flex gap-2">
-            <button
+          <Space>
+            <Button
+              type={previewMode === 'preview' ? 'default' : 'primary'}
+              icon={previewMode === 'preview' ? <EditOutlined /> : <EyeOutlined />}
               onClick={() => setPreviewMode(previewMode === 'preview' ? 'edit' : 'preview')}
-              className={'p-2 rounded-md ' + (previewMode === 'preview' ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-green-600 bg-green-50 hover:bg-green-100')}
-              title={previewMode === 'preview' ? 'Chuyển sang Edit Mode' : 'Chuyển sang Preview Mode'}
-            >
-              {previewMode === 'preview' ? <Edit3 size={16} /> : <Eye size={16} />}
-            </button>
-            <button
+              style={{ 
+                backgroundColor: previewMode === 'preview' ? '#fff7f0' : '#ff7a00',
+                borderColor: '#ff7a00',
+                color: previewMode === 'preview' ? '#ff7a00' : 'white'
+              }}
+            />
+            <Button
+              danger
+              icon={<DeleteOutlined />}
               onClick={clearForm}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md"
               title="Xóa dữ liệu form"
-            >
-              <Trash2 size={16} />
-            </button>
-            <button
+            />
+            <Button
+              type={isFormValid() ? 'primary' : 'default'}
+              icon={<DownloadOutlined />}
               onClick={exportForm}
               disabled={!isFormValid()}
-              className={'p-2 rounded-md ' + (isFormValid() ? 'text-green-600 hover:text-green-700 hover:bg-green-50' : 'text-gray-400 cursor-not-allowed')}
+              style={{ 
+                backgroundColor: isFormValid() ? '#28a745' : undefined,
+                borderColor: isFormValid() ? '#28a745' : undefined
+              }}
               title={isFormValid() ? "Xuất form" : "Form chưa đủ thông tin để xuất"}
-            >
-              <Download size={16} />
-            </button>
-          </div>
+            />
+          </Space>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
           {previewMode === 'preview' ? (
             <div className="max-w-lg mx-auto">
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <Card style={{ backgroundColor: 'white', border: '1px solid #ff7a00' }}>
                 {formData.introduction && (
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                    <h4 className="font-medium text-blue-800 mb-2">Giới thiệu</h4>
-                    <p className="text-blue-700 text-sm">{formData.introduction}</p>
-                    {(formData.startDate || formData.endDate) && (
-                      <div className="mt-3 text-xs text-blue-600">
-                        {formData.startDate && 'Bắt đầu: ' + formData.startDate}
-                        {formData.startDate && formData.endDate && ' • '}
-                        {formData.endDate && 'Kết thúc: ' + formData.endDate}
-                      </div>
-                    )}
-                  </div>
+                  <Alert
+                    message="Giới thiệu"
+                    description={
+                      <>
+                        <Paragraph style={{ color: '#ff7a00', margin: 0 }}>{formData.introduction}</Paragraph>
+                        {(formData.startDate || formData.endDate) && (
+                          <Text style={{ fontSize: '12px', color: '#ff7a00' }}>
+                            {formData.startDate && 'Bắt đầu: ' + formData.startDate}
+                            {formData.startDate && formData.endDate && ' • '}
+                            {formData.endDate && 'Kết thúc: ' + formData.endDate}
+                          </Text>
+                        )}
+                      </>
+                    }
+                    type="info"
+                    style={{ 
+                      backgroundColor: '#fff7f0', 
+                      border: '1px solid #ff7a00',
+                      marginBottom: '24px'
+                    }}
+                  />
                 )}
 
                 <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{formData.title}</h3>
-                  <p className="text-gray-600">{formData.description}</p>
+                  <Title level={2} style={{ color: '#ff7a00', marginBottom: '8px' }}>{formData.title}</Title>
+                  <Paragraph style={{ color: '#666' }}>{formData.description}</Paragraph>
                 </div>
 
-                <div className="space-y-4">
+                <Form layout="vertical">
                   {formData.fields.map((field) => (
-                    <div key={field.id}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </label>
+                    <Form.Item
+                      key={field.id}
+                      label={
+                        <Text strong style={{ color: '#ff7a00' }}>
+                          {field.label}
+                          {field.required && <Text style={{ color: 'red' }}> *</Text>}
+                        </Text>
+                      }
+                      required={field.required}
+                      style={{ marginBottom: '16px' }}
+                    >
                       {renderField(field)}
-                    </div>
+                    </Form.Item>
                   ))}
 
-                  <div className="pt-4">
-                    <button
+                  <Form.Item style={{ marginTop: '16px' }}>
+                    <Button
+                      type="primary"
+                      size="large"
+                      block
                       onClick={handleSubmitForm}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      style={{ backgroundColor: '#ff7a00', borderColor: '#ff7a00', height: '48px' }}
                     >
                       Gửi thông tin
-                    </button>
+                    </Button>
 
-                    <div className="mt-4 text-xs text-gray-500 space-y-1">
+                    <div style={{ marginTop: '16px', fontSize: '12px', color: '#666' }}>
                       {formData.emailConfig.enabled && (
-                        <div className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                          Email notification được kích hoạt
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                          <Badge color="green" />
+                          <Text style={{ fontSize: '12px' }}>Email notification được kích hoạt</Text>
                         </div>
                       )}
                       {formData.apiConfig.enabled && (
-                        <div className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                          API integration được kích hoạt
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                          <Badge color="blue" />
+                          <Text style={{ fontSize: '12px' }}>API integration được kích hoạt</Text>
                         </div>
                       )}
-                        <div className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                          <span>Trigger: {formData.triggerPhrases.slice(0, 2).join(', ')}{formData.triggerPhrases.length > 2 ? '...' : ''}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Badge color="orange" />
+                          <Text style={{ fontSize: '12px' }}>Trigger: {formData.triggerPhrases.slice(0, 2).join(', ')}{formData.triggerPhrases.length > 2 ? '...' : ''}</Text>
                         </div>
                     </div>
-                  </div>
-                </div>
+                  </Form.Item>
+                </Form>
 
                 {Object.keys(formValues).length > 0 && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-md">
-                    <h4 className="font-medium text-gray-800 mb-2">Dữ liệu hiện tại:</h4>
-                    <pre className="text-xs text-gray-600 overflow-x-auto">
+                  <Card 
+                    size="small" 
+                    title={<Text strong style={{ color: '#ff7a00' }}>Dữ liệu hiện tại</Text>}
+                    style={{ marginTop: '24px', backgroundColor: '#fff7f0', border: '1px solid #ff7a00' }}
+                  >
+                    <pre style={{ fontSize: '12px', color: '#666', overflowX: 'auto', margin: 0 }}>
                       {JSON.stringify(formValues, null, 2)}
                     </pre>
-                  </div>
+                  </Card>
                 )}
-              </div>
+              </Card>
             </div>
           ) : (
             <div className="max-w-4xl mx-auto">
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <Card style={{ backgroundColor: 'white', border: '1px solid #ff7a00' }}>
                 {!isFormValid() && (
-                  <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
-                    <h4 className="font-medium text-yellow-800 mb-2">⚠️ Form chưa đầy đủ để xuất</h4>
-                    <p className="text-yellow-700 text-sm">
-                      Cần có: lời giới thiệu, ngày bắt đầu/kết thúc, trigger phrases, và ít nhất 1 field
-                    </p>
-                  </div>
+                  <Alert
+                    message="⚠️ Form chưa đầy đủ để xuất"
+                    description="Cần có: lời giới thiệu, ngày bắt đầu/kết thúc, trigger phrases, và ít nhất 1 field"
+                    type="warning"
+                    style={{ marginBottom: '24px' }}
+                    showIcon
+                  />
                 )}
 
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Form Settings</h3>
+                <Card 
+                  title={<Text strong style={{ color: '#ff7a00' }}>Form Settings</Text>}
+                  style={{ marginBottom: '24px', backgroundColor: '#fff7f0', border: '1px solid #ff7a00' }}
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Form Title</label>
-                      <input
-                        type="text"
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Form Title</Text>
+                      <Input
                         value={formData.title}
                         onChange={(e) => updateFormData({ ...formData, title: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#ff7a00' }}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Form Description</label>
-                      <input
-                        type="text"
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>Form Description</Text>
+                      <Input
                         value={formData.description}
                         onChange={(e) => updateFormData({ ...formData, description: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#ff7a00' }}
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Introduction <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>
+                        Introduction <Text style={{ color: 'red' }}>*</Text>
+                      </Text>
+                      <TextArea
                         value={formData.introduction}
                         onChange={(e) => updateFormData({ ...formData, introduction: e.target.value })}
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#ff7a00' }}
                         placeholder="Lời giới thiệu chi tiết về form này..."
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Start Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) => updateFormData({ ...formData, startDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>
+                        Start Date <Text style={{ color: 'red' }}>*</Text>
+                      </Text>
+                      <DatePicker
+                        value={formData.startDate ? dayjs(formData.startDate) : null}
+                        onChange={(date, dateString) => updateFormData({ ...formData, startDate: dateString })}
+                        style={{ width: '100%', borderColor: '#ff7a00' }}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        End Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.endDate}
-                        onChange={(e) => updateFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>
+                        End Date <Text style={{ color: 'red' }}>*</Text>
+                      </Text>
+                      <DatePicker
+                        value={formData.endDate ? dayjs(formData.endDate) : null}
+                        onChange={(date, dateString) => updateFormData({ ...formData, endDate: dateString })}
+                        style={{ width: '100%', borderColor: '#ff7a00' }}
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Trigger Phrases <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
+                      <Text strong style={{ color: '#ff7a00', display: 'block', marginBottom: '4px' }}>
+                        Trigger Phrases <Text style={{ color: 'red' }}>*</Text>
+                      </Text>
+                      <Input
                         value={formData.triggerPhrases.join(', ')}
                         onChange={(e) => updateFormData({ 
                           ...formData, 
                           triggerPhrases: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style={{ borderColor: '#ff7a00' }}
                         placeholder="từ khóa 1, từ khóa 2, từ khóa 3..."
                       />
-                      <p className="text-xs text-gray-500 mt-1">Các từ khóa liên quan đến chủ đề form</p>
+                      <Text style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>Các từ khóa liên quan đến chủ đề form</Text>
                     </div>
                   </div>
-                </div>
+                </Card>
 
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Form Fields</h3>
-                    <button
-                      onClick={addNewField}
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      <Plus size={16} />
-                      Add Field
-                    </button>
-                  </div>
+                <Card
+                  title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text strong style={{ color: '#ff7a00' }}>Form Fields</Text>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={addNewField}
+                        style={{ backgroundColor: '#ff7a00', borderColor: '#ff7a00' }}
+                      >
+                        Add Field
+                      </Button>
+                    </div>
+                  }
+                  style={{ marginBottom: '24px', backgroundColor: '#fff7f0', border: '1px solid #ff7a00' }}
+                >
 
                   <div className="space-y-4">
                     {formData.fields.map((field, index) => (
@@ -862,20 +1235,23 @@ const FormAgent = () => {
                       />
                     ))}
                   </div>
-                </div>
+                </Card>
 
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-800 mb-2">Form JSON Structure:</h4>
-                  <pre className="text-xs text-gray-600 overflow-x-auto bg-white p-3 rounded border max-h-40">
+                <Card 
+                  title={<Text strong style={{ color: '#ff7a00' }}>Form JSON Structure</Text>}
+                  style={{ backgroundColor: '#fff7f0', border: '1px solid #ff7a00' }}
+                >
+                  <pre style={{ fontSize: '12px', color: '#666', overflowX: 'auto', backgroundColor: 'white', padding: '12px', borderRadius: '4px', border: '1px solid #ddd', maxHeight: '160px', margin: 0 }}>
                     {JSON.stringify(formData, null, 2)}
                   </pre>
-                </div>
-              </div>
+                </Card>
+              </Card>
             </div>
           )}
         </div>
       </div>
     </div>
+    </ConfigProvider>
   );
 };
 
