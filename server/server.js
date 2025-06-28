@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 import Form from './models/Form.js';
 import Submission from './models/Submission.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 dotenv.config();
 
