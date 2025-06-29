@@ -1,19 +1,28 @@
 import express from 'express';
 import aiService from '../services/aiService.js';
+import crewAIService from '../services/crewAIService.js';
 import Form from '../models/Form.js';
 import Submission from '../models/Submission.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
 // AI Configuration Info
 router.get('/config', (req, res) => {
   try {
-    const config = aiService.getProviderInfo();
+    const legacyConfig = aiService.getProviderInfo();
+    const crewAIConfig = crewAIService.getServiceInfo();
+    
     res.json({
       success: true,
-      config
+      config: {
+        legacy: legacyConfig,
+        crewAI: crewAIConfig,
+        activeService: crewAIService.isEnabled() ? 'CrewAI' : 'Legacy'
+      }
     });
   } catch (error) {
+    logger.logError(error, { context: 'AI config endpoint' });
     res.status(500).json({
       success: false,
       error: 'Failed to get AI configuration',
@@ -22,20 +31,14 @@ router.get('/config', (req, res) => {
   }
 });
 
-// Generate Form with AI
+// Generate Form with AI (CrewAI Enhanced)
 router.post('/generate-form', async (req, res) => {
   try {
-    if (!aiService.isEnabled()) {
-      return res.status(503).json({
-        success: false,
-        error: 'AI service is not enabled or configured'
-      });
-    }
-
     const { 
       description, 
       requirements = {},
-      autoSave = false 
+      autoSave = false,
+      useCrewAI = true
     } = req.body;
 
     if (!description) {
@@ -45,8 +48,35 @@ router.post('/generate-form', async (req, res) => {
       });
     }
 
-    // Generate form using AI
-    const generatedForm = await aiService.generateFormFields(description, requirements);
+    let generatedForm;
+    let service = 'legacy';
+
+    // Try CrewAI first if enabled and requested
+    if (useCrewAI && crewAIService.isEnabled()) {
+      try {
+        generatedForm = await crewAIService.generateForm(description, requirements);
+        service = 'CrewAI';
+        logger.info('Form generated using CrewAI', { description: description.substring(0, 50) });
+      } catch (crewError) {
+        logger.logError(crewError, { context: 'CrewAI form generation fallback' });
+        // Fall back to legacy service
+        if (aiService.isEnabled()) {
+          generatedForm = await aiService.generateFormFields(description, requirements);
+          service = 'legacy-fallback';
+        } else {
+          throw new Error('No AI service available');
+        }
+      }
+    } else if (aiService.isEnabled()) {
+      // Use legacy AI service
+      generatedForm = await aiService.generateFormFields(description, requirements);
+      service = 'legacy';
+    } else {
+      return res.status(503).json({
+        success: false,
+        error: 'No AI service is enabled or configured'
+      });
+    }
 
     let savedForm = null;
     if (autoSave) {
@@ -72,12 +102,13 @@ router.post('/generate-form', async (req, res) => {
       savedForm,
       metadata: {
         generatedAt: new Date().toISOString(),
-        provider: aiService.aiProvider,
+        service: service,
+        provider: service === 'CrewAI' ? crewAIService.getServiceInfo().provider : aiService.aiProvider,
         autoSaved: autoSave
       }
     });
   } catch (error) {
-    console.error('AI form generation error:', error);
+    logger.logError(error, { context: 'AI form generation' });
     res.status(500).json({
       success: false,
       error: 'Failed to generate form',
@@ -432,10 +463,10 @@ router.post('/bulk-generate', async (req, res) => {
   }
 });
 
-// Chat endpoint for general conversation
+// Chat endpoint for general conversation (CrewAI Enhanced)
 router.post('/chat', async (req, res) => {
   try {
-    const { message, conversation_id } = req.body;
+    const { message, conversation_id, context = {}, useCrewAI = true } = req.body;
 
     if (!message) {
       return res.status(400).json({
@@ -444,10 +475,39 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // If AI service is available, use it
+    let response;
+    let service = 'fallback';
+    const conversationId = conversation_id || `chat_${Date.now()}`;
+
+    // Try CrewAI first if enabled and requested
+    if (useCrewAI && crewAIService.isEnabled()) {
+      try {
+        const chatResponse = await crewAIService.handleChatMessage(
+          message,
+          conversationId,
+          { ...context, language: 'Vietnamese' }
+        );
+        
+        response = chatResponse.response;
+        service = 'CrewAI';
+        
+        return res.json({
+          success: true,
+          response: response,
+          conversation_id: conversationId,
+          service: service,
+          metadata: chatResponse.context
+        });
+      } catch (crewError) {
+        logger.logError(crewError, { context: 'CrewAI chat fallback' });
+        // Fall through to legacy service
+      }
+    }
+
+    // Try legacy AI service
     if (aiService.isEnabled()) {
       try {
-        const response = await aiService.generateCompletion(`
+        response = await aiService.generateCompletion(`
 Bạn là FormAgent AI, một trợ lý thông minh chuyên tạo form và trò chuyện thân thiện.
 
 Nhiệm vụ của bạn:
@@ -460,13 +520,16 @@ Tin nhắn của người dùng: "${message}"
 
 Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
 
+        service = 'legacy';
+        
         return res.json({
           success: true,
           response: response,
-          conversation_id: conversation_id || 'default'
+          conversation_id: conversationId,
+          service: service
         });
       } catch (aiError) {
-        console.error('AI service error:', aiError);
+        logger.logError(aiError, { context: 'Legacy AI chat fallback' });
         // Fall through to default response
       }
     }
@@ -522,14 +585,185 @@ Bạn muốn tôi giúp gì khác?`;
     res.json({
       success: true,
       response: response,
-      conversation_id: conversation_id || 'default'
+      conversation_id: conversationId,
+      service: 'fallback'
     });
 
   } catch (error) {
-    console.error('Chat endpoint error:', error);
+    logger.logError(error, { context: 'Chat endpoint' });
     res.status(500).json({
       success: false,
       error: 'Failed to process chat message',
+      message: error.message
+    });
+  }
+});
+
+// CrewAI specific endpoints
+
+// Form optimization with CrewAI
+router.post('/optimize-form/:formId', async (req, res) => {
+  try {
+    if (!crewAIService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'CrewAI service is not enabled'
+      });
+    }
+
+    const { formId } = req.params;
+    const { goals = ['improve-ux', 'increase-conversion'] } = req.body;
+
+    const form = await Form.findById(formId);
+    if (!form) {
+      return res.status(404).json({
+        success: false,
+        error: 'Form not found'
+      });
+    }
+
+    const optimization = await crewAIService.optimizeForm(form.toObject(), goals);
+
+    res.json({
+      success: true,
+      optimization,
+      originalForm: form,
+      metadata: {
+        optimizedAt: new Date().toISOString(),
+        service: 'CrewAI',
+        goals
+      }
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'CrewAI form optimization' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to optimize form',
+      message: error.message
+    });
+  }
+});
+
+// Form validation with CrewAI
+router.post('/validate-form', async (req, res) => {
+  try {
+    if (!crewAIService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'CrewAI service is not enabled'
+      });
+    }
+
+    const { formData } = req.body;
+
+    if (!formData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Form data is required for validation'
+      });
+    }
+
+    const validation = await crewAIService.validateForm(formData);
+
+    res.json({
+      success: true,
+      validation,
+      metadata: {
+        validatedAt: new Date().toISOString(),
+        service: 'CrewAI'
+      }
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'CrewAI form validation' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to validate form',
+      message: error.message
+    });
+  }
+});
+
+// Conversation analysis
+router.get('/chat/analyze/:conversationId', async (req, res) => {
+  try {
+    if (!crewAIService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'CrewAI service is not enabled'
+      });
+    }
+
+    const { conversationId } = req.params;
+    const analysis = await crewAIService.analyzeConversation(conversationId);
+
+    res.json({
+      success: true,
+      analysis,
+      metadata: {
+        analyzedAt: new Date().toISOString(),
+        service: 'CrewAI'
+      }
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'CrewAI conversation analysis' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze conversation',
+      message: error.message
+    });
+  }
+});
+
+// Service statistics
+router.get('/stats', (req, res) => {
+  try {
+    const crewAIStats = crewAIService.isEnabled() ? crewAIService.getStatistics() : null;
+    const legacyInfo = aiService.getProviderInfo();
+
+    res.json({
+      success: true,
+      statistics: {
+        crewAI: crewAIStats,
+        legacy: legacyInfo,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'AI service statistics' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get statistics',
+      message: error.message
+    });
+  }
+});
+
+// Health check for AI services
+router.get('/health', async (req, res) => {
+  try {
+    const crewAIHealth = crewAIService.isEnabled() ? 
+      await crewAIService.healthCheck() : 
+      { status: 'disabled', reason: 'Service not enabled' };
+    
+    const legacyHealth = {
+      status: aiService.isEnabled() ? 'healthy' : 'disabled',
+      provider: aiService.aiProvider
+    };
+
+    res.json({
+      success: true,
+      health: {
+        crewAI: crewAIHealth,
+        legacy: legacyHealth,
+        overall: crewAIHealth.status === 'healthy' || legacyHealth.status === 'healthy' ? 'healthy' : 'unhealthy',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'AI service health check' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check health',
       message: error.message
     });
   }

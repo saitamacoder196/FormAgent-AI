@@ -653,7 +653,7 @@ const FormAgent = () => {
 
   const handleChatMessage = async (message) => {
     try {
-      // Call chat API endpoint
+      // Call chat API endpoint with CrewAI support
       const response = await fetch('http://localhost:5000/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -661,7 +661,13 @@ const FormAgent = () => {
         },
         body: JSON.stringify({
           message: message,
-          conversation_id: clientId
+          conversation_id: clientId,
+          useCrewAI: true, // Enable CrewAI by default
+          context: {
+            userId: clientId,
+            timestamp: new Date().toISOString(),
+            language: 'Vietnamese'
+          }
         }),
       });
 
@@ -671,27 +677,48 @@ const FormAgent = () => {
         const botResponse = {
           id: Date.now() + 1,
           type: 'bot',
-          content: result.response
+          content: result.response,
+          service: result.service || 'unknown',
+          metadata: result.metadata
         };
         setMessages(prev => [...prev, botResponse]);
+        
+        // Show service indicator if using CrewAI
+        if (result.service === 'CrewAI') {
+          console.log('✨ Powered by CrewAI Multi-Agent System');
+        }
       } else {
         throw new Error(result.error || 'Chat API call failed');
       }
     } catch (error) {
       console.error('Chat API error:', error);
       
-      // Fallback response
+      // Enhanced fallback response
       const fallbackResponse = {
         id: Date.now() + 1,
         type: 'bot',
-        content: `Tôi là FormAgent AI, trợ lý tạo form thông minh! 🤖
+        content: `Xin chào! Tôi là FormAgent AI 🤖 - Trợ lý thông minh powered by CrewAI
 
 Tôi có thể giúp bạn:
-📝 Tạo các loại form: đăng ký, khảo sát, phản hồi, thu thập thông tin
-💬 Trò chuyện và tư vấn về thiết kế form
-🔧 Cấu hình các tính năng form nâng cao
+📝 **Tạo form tự động:**
+   • "Tạo form đăng ký sự kiện"
+   • "Tạo khảo sát khách hàng"
+   • "Tạo form phản hồi"
 
-Bạn muốn tôi giúp gì? Hãy thử nói "tạo form đăng ký sự kiện" hoặc hỏi bất kỳ điều gì!`
+💬 **Trò chuyện tự nhiên:**
+   • Tư vấn thiết kế form
+   • Giải đáp thắc mắc
+   • Hướng dẫn sử dụng
+
+🎯 **Tối ưu hóa form:**
+   • Phân tích hiệu quả
+   • Đề xuất cải thiện
+   • Validation thông minh
+
+Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều gì! 😊
+
+*💡 Tip: Nói "tạo form" để tạo form mới hoặc chỉ cần trò chuyện bình thường!*`,
+        service: 'fallback'
       };
       setMessages(prev => [...prev, fallbackResponse]);
     }
@@ -714,32 +741,51 @@ Bạn muốn tôi giúp gì? Hãy thử nói "tạo form đăng ký sự kiện"
     // Check if this is a form creation request
     if (isFormRequest(currentInput)) {
       try {
-        // Call form creation API endpoint
-        const response = await fetch('http://localhost:5000/api/process-form', {
+        // Call CrewAI-enhanced form generation API endpoint
+        const response = await fetch('http://localhost:5000/api/ai/generate-form', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            prompt: currentInput,
-            clientId: clientId
+            description: currentInput,
+            requirements: {
+              fieldCount: 5,
+              includeValidation: true,
+              formType: 'dynamic',
+              targetAudience: 'general',
+              language: 'Vietnamese'
+            },
+            autoSave: false,
+            useCrewAI: true
           }),
         });
 
         const result = await response.json();
         
-        if (result.success) {
-          // Show processing message
-          const processingResponse = {
+        if (result.success && result.generatedForm) {
+          // Set the generated form data
+          const generatedForm = result.generatedForm;
+          setFormData(generatedForm);
+          setFormValues({});
+          
+          // Show success message with service info
+          const serviceInfo = result.metadata?.service || 'AI';
+          const successResponse = {
             id: Date.now() + 1,
             type: 'bot',
-            content: '🔄 Đang xử lý yêu cầu tạo form qua WebSocket server... Vui lòng chờ!'
+            content: `✅ Đã tạo thành công form "${generatedForm.title}" với ${generatedForm.fields?.length || 0} trường thông tin!
+
+🤖 **Powered by:** ${serviceInfo}
+📝 **Mô tả:** ${generatedForm.description}
+⚙️ **Tính năng:** Validation thông minh, responsive design
+
+Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc hỏi tôi thêm về cách tối ưu hóa form!`,
+            service: serviceInfo
           };
-          setMessages(prev => [...prev, processingResponse]);
-          
-          // The actual form will be received via WebSocket
+          setMessages(prev => [...prev, successResponse]);
         } else {
-          throw new Error(result.error || 'API call failed');
+          throw new Error(result.error || 'Form generation failed');
         }
       } catch (error) {
         console.error('Form API call error:', error);
