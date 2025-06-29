@@ -1,15 +1,22 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files first
+COPY package.json ./
+COPY package-lock.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy only necessary source files
+COPY server.js ./
+COPY healthcheck.js ./
+COPY config ./config
+COPY models ./models
+COPY routes ./routes
+COPY services ./services
+COPY docs ./docs
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
