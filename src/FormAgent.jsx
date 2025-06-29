@@ -759,18 +759,18 @@ Bạn muốn tôi giúp gì? Hãy thử nói "tạo form đăng ký sự kiện"
           if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
             setFormData(generatedForm);
             setFormValues({});
-          
-          const botResponse = {
-            id: Date.now() + 2,
-            type: 'bot',
-            content: '✅ Đã tạo form "' + generatedForm.title + '" với ' + generatedForm.fields.length + ' trường thông tin (local).'
-          };
-          setMessages(prev => [...prev, botResponse]);
-        } else {
-          const fallbackForm = createFallbackForm(currentInput);
-          setFormData(fallbackForm);
-          setFormValues({});
-        }
+            
+            const botResponse = {
+              id: Date.now() + 2,
+              type: 'bot',
+              content: '✅ Đã tạo form "' + generatedForm.title + '" với ' + generatedForm.fields.length + ' trường thông tin (local).'
+            };
+            setMessages(prev => [...prev, botResponse]);
+          } else {
+            const fallbackForm = createFallbackForm(currentInput);
+            setFormData(fallbackForm);
+            setFormValues({});
+          }
       } catch (localError) {
         const fallbackForm = createFallbackForm(currentInput);
         setFormData(fallbackForm);
