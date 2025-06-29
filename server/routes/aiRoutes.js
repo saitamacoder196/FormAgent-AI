@@ -536,10 +536,10 @@ Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
 
     // Default responses for common questions
     const lowerMessage = message.toLowerCase();
-    let response = '';
+    let fallbackResponse = '';
 
     if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-      response = `Xin chào! Tôi là FormAgent AI 🤖
+      fallbackResponse = `Xin chào! Tôi là FormAgent AI 🤖
 
 Tôi có thể giúp bạn:
 📝 Tạo form đăng ký, khảo sát, phản hồi
@@ -548,7 +548,7 @@ Tôi có thể giúp bạn:
 
 Bạn muốn làm gì hôm nay?`;
     } else if (lowerMessage.includes('làm gì') || lowerMessage.includes('giúp gì')) {
-      response = `Tôi có thể giúp bạn:
+      fallbackResponse = `Tôi có thể giúp bạn:
 
 🚀 **Tạo form nhanh chóng:**
 - "Tạo form đăng ký sự kiện"
@@ -566,11 +566,11 @@ Bạn muốn làm gì hôm nay?`;
 
 Bạn muốn thử tạo form không?`;
     } else if (lowerMessage.includes('cảm ơn') || lowerMessage.includes('thank')) {
-      response = 'Rất vui được giúp bạn! 😊 Nếu cần hỗ trợ thêm, hãy nói với tôi nhé!';
+      fallbackResponse = 'Rất vui được giúp bạn! 😊 Nếu cần hỗ trợ thêm, hãy nói với tôi nhé!';
     } else if (lowerMessage.includes('bye') || lowerMessage.includes('tạm biệt')) {
-      response = 'Tạm biệt! Hẹn gặp lại bạn soon! 👋';
+      fallbackResponse = 'Tạm biệt! Hẹn gặp lại bạn soon! 👋';
     } else {
-      response = `Tôi hiểu bạn đang hỏi về: "${message}"
+      fallbackResponse = `Tôi hiểu bạn đang hỏi về: "${message}"
 
 Tôi là FormAgent AI, chuyên gia về tạo form! 🎯
 
@@ -584,7 +584,7 @@ Bạn muốn tôi giúp gì khác?`;
 
     res.json({
       success: true,
-      response: response,
+      response: fallbackResponse,
       conversation_id: conversationId,
       service: 'fallback'
     });
