@@ -1,6 +1,6 @@
 import express from 'express';
 import aiService from '../services/aiService.js';
-import langChainService from '../services/langChainService.js';
+import enhancedAgentService from '../services/crewAIService.js';
 import Form from '../models/Form.js';
 import Submission from '../models/Submission.js';
 import logger from '../utils/logger.js';
@@ -11,14 +11,14 @@ const router = express.Router();
 router.get('/config', (req, res) => {
   try {
     const legacyConfig = aiService.getProviderInfo();
-    const langChainConfig = langChainService.getServiceInfo();
+    const langChainConfig = enhancedAgentService.getServiceInfo();
     
     res.json({
       success: true,
       config: {
         legacy: legacyConfig,
         langChain: langChainConfig,
-        activeService: langChainService.isEnabled() ? 'LangChain' : 'Legacy'
+        activeService: enhancedAgentService.isEnabled() ? 'LangChain' : 'Legacy'
       }
     });
   } catch (error) {
@@ -52,9 +52,9 @@ router.post('/generate-form', async (req, res) => {
     let service = 'legacy';
 
     // Try LangChain first if enabled and requested
-    if (useCrewAI && langChainService.isEnabled()) {
+    if (useCrewAI && enhancedAgentService.isEnabled()) {
       try {
-        generatedForm = await langChainService.generateForm(description, requirements);
+        generatedForm = await enhancedAgentService.generateForm(description, requirements);
         service = 'LangChain';
         logger.info('Form generated using LangChain', { description: description.substring(0, 50) });
       } catch (crewError) {
@@ -103,7 +103,7 @@ router.post('/generate-form', async (req, res) => {
       metadata: {
         generatedAt: new Date().toISOString(),
         service: service,
-        provider: service === 'LangChain' ? langChainService.getServiceInfo().provider : aiService.aiProvider,
+        provider: service === 'LangChain' ? enhancedAgentService.getServiceInfo().provider : aiService.aiProvider,
         autoSaved: autoSave
       }
     });
@@ -480,9 +480,9 @@ router.post('/chat', async (req, res) => {
     const conversationId = conversation_id || `chat_${Date.now()}`;
 
     // Try LangChain first if enabled and requested
-    if (useCrewAI && langChainService.isEnabled()) {
+    if (useCrewAI && enhancedAgentService.isEnabled()) {
       try {
-        const chatResponse = await langChainService.handleChatMessage(
+        const chatResponse = await enhancedAgentService.handleChatMessage(
           message,
           conversationId,
           { ...context, language: 'Vietnamese' }
@@ -604,7 +604,7 @@ Bạn muốn tôi giúp gì khác?`;
 // Form optimization with LangChain
 router.post('/optimize-form/:formId', async (req, res) => {
   try {
-    if (!langChainService.isEnabled()) {
+    if (!enhancedAgentService.isEnabled()) {
       return res.status(503).json({
         success: false,
         error: 'LangChain service is not enabled'
@@ -622,7 +622,7 @@ router.post('/optimize-form/:formId', async (req, res) => {
       });
     }
 
-    const optimization = await langChainService.optimizeForm(form.toObject(), goals);
+    const optimization = await enhancedAgentService.optimizeForm(form.toObject(), goals);
 
     res.json({
       success: true,
@@ -647,7 +647,7 @@ router.post('/optimize-form/:formId', async (req, res) => {
 // Form validation with LangChain
 router.post('/validate-form', async (req, res) => {
   try {
-    if (!langChainService.isEnabled()) {
+    if (!enhancedAgentService.isEnabled()) {
       return res.status(503).json({
         success: false,
         error: 'LangChain service is not enabled'
@@ -663,7 +663,7 @@ router.post('/validate-form', async (req, res) => {
       });
     }
 
-    const validation = await langChainService.validateForm(formData);
+    const validation = await enhancedAgentService.validateForm(formData);
 
     res.json({
       success: true,
@@ -686,7 +686,7 @@ router.post('/validate-form', async (req, res) => {
 // Conversation analysis
 router.get('/chat/analyze/:conversationId', async (req, res) => {
   try {
-    if (!langChainService.isEnabled()) {
+    if (!enhancedAgentService.isEnabled()) {
       return res.status(503).json({
         success: false,
         error: 'LangChain service is not enabled'
@@ -694,7 +694,7 @@ router.get('/chat/analyze/:conversationId', async (req, res) => {
     }
 
     const { conversationId } = req.params;
-    const analysis = await langChainService.analyzeConversation(conversationId);
+    const analysis = await enhancedAgentService.analyzeConversation(conversationId);
 
     res.json({
       success: true,
@@ -717,7 +717,7 @@ router.get('/chat/analyze/:conversationId', async (req, res) => {
 // Service statistics
 router.get('/stats', (req, res) => {
   try {
-    const langChainStats = langChainService.isEnabled() ? langChainService.getStatistics() : null;
+    const langChainStats = enhancedAgentService.isEnabled() ? enhancedAgentService.getStatistics() : null;
     const legacyInfo = aiService.getProviderInfo();
 
     res.json({
@@ -741,8 +741,8 @@ router.get('/stats', (req, res) => {
 // Health check for AI services
 router.get('/health', async (req, res) => {
   try {
-    const langChainHealth = langChainService.isEnabled() ? 
-      await langChainService.healthCheck() : 
+    const langChainHealth = enhancedAgentService.isEnabled() ? 
+      await enhancedAgentService.healthCheck() : 
       { status: 'disabled', reason: 'Service not enabled' };
     
     const legacyHealth = {

@@ -683,9 +683,9 @@ const FormAgent = () => {
         };
         setMessages(prev => [...prev, botResponse]);
         
-        // Show service indicator if using LangChain
+        // Show service indicator if using Enhanced AI
         if (result.service === 'LangChain') {
-          console.log('✨ Powered by LangChain Multi-Agent System');
+          console.log('✨ Powered by Enhanced AI Agent System');
         }
       } else {
         throw new Error(result.error || 'Chat API call failed');
@@ -719,7 +719,7 @@ Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều g
 
 *💡 Tip: Nói "tạo form" để tạo form mới hoặc chỉ cần trò chuyện bình thường!*
 
-*🔧 Powered by LangChain Multi-Agent System*`,
+*🔧 Powered by Enhanced AI Agent System*`,
         service: 'fallback'
       };
       setMessages(prev => [...prev, fallbackResponse]);

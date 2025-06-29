@@ -1,32 +1,36 @@
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
+import OpenAI from 'openai';
+import { AzureOpenAI } from 'openai';
 import logger from '../utils/logger.js';
 
 class FormBuilderAgent {
-  constructor(llmConfig) {
-    this.llm = new ChatOpenAI({
-      model: llmConfig.model || 'gpt-3.5-turbo',
-      temperature: llmConfig.temperature || 0.7,
-      maxTokens: llmConfig.maxTokens || 2000,
-      openAIApiKey: llmConfig.apiKey,
-      azureOpenAIApiKey: llmConfig.azureApiKey,
-      azureOpenAIApiVersion: llmConfig.azureApiVersion,
-      azureOpenAIApiInstanceName: llmConfig.azureInstanceName,
-      azureOpenAIApiDeploymentName: llmConfig.azureDeploymentName
-    });
-    
-    this.outputParser = new StringOutputParser();
+  constructor(config) {
+    this.config = config;
     this.role = 'Form Design Specialist';
+    this.client = this.initializeClient();
     
     logger.info('FormBuilder Agent initialized', { 
       agent: 'FormBuilderAgent',
-      model: llmConfig.model 
+      provider: config.provider 
     });
   }
 
+  initializeClient() {
+    if (this.config.provider === 'azure') {
+      return new AzureOpenAI({
+        apiKey: this.config.apiKey,
+        endpoint: this.config.endpoint,
+        apiVersion: this.config.apiVersion,
+        deployment: this.config.deployment
+      });
+    } else {
+      return new OpenAI({
+        apiKey: this.config.apiKey
+      });
+    }
+  }
+
   /**
-   * Generate a form using LangChain
+   * Generate a form using OpenAI/Azure OpenAI
    */
   async generateForm(description, requirements = {}) {
     try {
@@ -35,64 +39,25 @@ class FormBuilderAgent {
         requirements 
       });
 
-      const prompt = ChatPromptTemplate.fromTemplate(`
-You are an expert form designer with deep knowledge of UX/UI principles, form validation, and user experience optimization.
-
-Create a comprehensive form based on the following requirements:
-
-User Description: {description}
-
-Requirements:
-- Field Count: {fieldCount}
-- Form Type: {formType}
-- Target Audience: {targetAudience}
-- Include Validation: {includeValidation}
-- Language: {language}
-
-Generate a JSON structure with the following format:
-{{
-  "title": "Form Title",
-  "description": "Brief form description",
-  "fields": [
-    {{
-      "id": "field_id",
-      "type": "text|email|password|textarea|select|radio|checkbox|number|date|file",
-      "name": "field_name",
-      "label": "Field Label", 
-      "placeholder": "Placeholder text",
-      "required": boolean,
-      "validation": {{
-        "pattern": "regex_pattern",
-        "message": "validation_message"
-      }},
-      "options": ["option1", "option2"] // only for select, radio, checkbox
-    }}
-  ],
-  "styling": {{
-    "theme": "modern|classic|minimal",
-    "primaryColor": "#color",
-    "layout": "single-column|two-column"
-  }},
-  "settings": {{
-    "allowMultipleSubmissions": boolean,
-    "showProgressBar": boolean,
-    "redirectAfterSubmit": "url"
-  }}
-}}
-
-Make the form practical, accessible, and user-friendly. Focus on creating meaningful field IDs, proper validation, and good UX.
-Return only the JSON structure, no additional text.`);
-
-      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
+      const prompt = this.buildFormGenerationPrompt(description, requirements);
       
-      const result = await chain.invoke({
-        description,
-        fieldCount: requirements.fieldCount || 5,
-        formType: requirements.formType || 'contact',
-        targetAudience: requirements.targetAudience || 'general',
-        includeValidation: requirements.includeValidation !== false,
-        language: requirements.language || 'English'
+      const completion = await this.client.chat.completions.create({
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert form designer with deep knowledge of UX/UI principles, form validation, and user experience optimization.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: this.config.temperature,
+        max_tokens: this.config.maxTokens
       });
+
+      const result = completion.choices[0].message.content;
       
       logger.info('Form generation completed', { 
         hasResult: !!result,
@@ -116,12 +81,127 @@ Return only the JSON structure, no additional text.`);
         goals 
       });
 
-      const prompt = ChatPromptTemplate.fromTemplate(`
-You are a form optimization expert. Analyze the following form and provide optimization recommendations.
+      const prompt = this.buildOptimizationPrompt(existingForm, goals);
+      
+      const completion = await this.client.chat.completions.create({
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a form optimization expert. Analyze forms and provide detailed optimization recommendations.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: this.config.temperature,
+        max_tokens: this.config.maxTokens
+      });
 
-Existing Form: {existingForm}
+      const result = completion.choices[0].message.content;
+      
+      logger.info('Form optimization completed');
 
-Optimization Goals: {goals}
+      return this.parseOptimizationResult(result);
+    } catch (error) {
+      logger.logError(error, { context: 'FormBuilderAgent.optimizeForm' });
+      throw new Error(`Form optimization failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validate form structure
+   */
+  async validateForm(formData) {
+    try {
+      logger.info('Starting form validation', { 
+        formTitle: formData.title,
+        fieldCount: formData.fields?.length 
+      });
+
+      const prompt = this.buildValidationPrompt(formData);
+      
+      const completion = await this.client.chat.completions.create({
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a form validation expert. Review forms for issues and provide detailed feedback.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: this.config.temperature,
+        max_tokens: this.config.maxTokens
+      });
+
+      const result = completion.choices[0].message.content;
+      
+      logger.info('Form validation completed');
+
+      return this.parseValidationResult(result);
+    } catch (error) {
+      logger.logError(error, { context: 'FormBuilderAgent.validateForm' });
+      throw new Error(`Form validation failed: ${error.message}`);
+    }
+  }
+
+  buildFormGenerationPrompt(description, requirements) {
+    return `Create a comprehensive form based on the following requirements:
+
+User Description: ${description}
+
+Requirements:
+- Field Count: ${requirements.fieldCount || 5}
+- Form Type: ${requirements.formType || 'contact'}
+- Target Audience: ${requirements.targetAudience || 'general'}
+- Include Validation: ${requirements.includeValidation !== false}
+- Language: ${requirements.language || 'English'}
+
+Generate a JSON structure with the following format:
+{
+  "title": "Form Title",
+  "description": "Brief form description",
+  "fields": [
+    {
+      "id": "field_id",
+      "type": "text|email|password|textarea|select|radio|checkbox|number|date|file",
+      "name": "field_name",
+      "label": "Field Label", 
+      "placeholder": "Placeholder text",
+      "required": boolean,
+      "validation": {
+        "pattern": "regex_pattern",
+        "message": "validation_message"
+      },
+      "options": ["option1", "option2"] // only for select, radio, checkbox
+    }
+  ],
+  "styling": {
+    "theme": "modern|classic|minimal",
+    "primaryColor": "#color",
+    "layout": "single-column|two-column"
+  },
+  "settings": {
+    "allowMultipleSubmissions": boolean,
+    "showProgressBar": boolean,
+    "redirectAfterSubmit": "url"
+  }
+}
+
+Make the form practical, accessible, and user-friendly. Focus on creating meaningful field IDs, proper validation, and good UX.
+Return only the JSON structure, no additional text.`;
+  }
+
+  buildOptimizationPrompt(existingForm, goals) {
+    return `Analyze the following form and provide optimization recommendations:
+
+Existing Form: ${JSON.stringify(existingForm, null, 2)}
+
+Optimization Goals: ${goals.join(', ')}
 
 Analyze the current form and provide:
 1. **Issues Found**: List specific problems with the current form
@@ -147,38 +227,13 @@ Format your response as:
 [JSON structure]
 
 ## Expected Impact
-[Expected improvements]`);
-
-      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
-      
-      const result = await chain.invoke({
-        existingForm: JSON.stringify(existingForm, null, 2),
-        goals: goals.join(', ')
-      });
-      
-      logger.info('Form optimization completed');
-
-      return this.parseOptimizationResult(result);
-    } catch (error) {
-      logger.logError(error, { context: 'FormBuilderAgent.optimizeForm' });
-      throw new Error(`Form optimization failed: ${error.message}`);
-    }
+[Expected improvements]`;
   }
 
-  /**
-   * Validate form structure
-   */
-  async validateForm(formData) {
-    try {
-      logger.info('Starting form validation', { 
-        formTitle: formData.title,
-        fieldCount: formData.fields?.length 
-      });
+  buildValidationPrompt(formData) {
+    return `Review the following form for issues and improvements:
 
-      const prompt = ChatPromptTemplate.fromTemplate(`
-You are a form validation expert. Review the following form for issues and improvements.
-
-Form Data: {formData}
+Form Data: ${JSON.stringify(formData, null, 2)}
 
 Check for:
 1. Field type consistency
@@ -206,21 +261,7 @@ Format as:
 - Fix for each issue
 
 ## Corrected Form
-[JSON structure if corrections needed]`);
-
-      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
-      
-      const result = await chain.invoke({
-        formData: JSON.stringify(formData, null, 2)
-      });
-      
-      logger.info('Form validation completed');
-
-      return this.parseValidationResult(result);
-    } catch (error) {
-      logger.logError(error, { context: 'FormBuilderAgent.validateForm' });
-      throw new Error(`Form validation failed: ${error.message}`);
-    }
+[JSON structure if corrections needed]`;
   }
 
   /**
@@ -256,7 +297,7 @@ Format as:
       // Add metadata
       parsed.metadata = {
         generatedAt: new Date().toISOString(),
-        generator: 'LangChain-FormBuilder',
+        generator: 'Enhanced-FormBuilder-Agent',
         version: '1.0.0'
       };
 
@@ -267,7 +308,7 @@ Format as:
       // Return default form structure on parse error
       return {
         title: 'Generated Form',
-        description: 'AI-generated form using LangChain',
+        description: 'AI-generated form using Enhanced Agent',
         fields: [
           {
             id: 'field_0',
@@ -300,7 +341,7 @@ Format as:
         },
         metadata: {
           generatedAt: new Date().toISOString(),
-          generator: 'LangChain-FormBuilder-Fallback',
+          generator: 'Enhanced-FormBuilder-Agent-Fallback',
           version: '1.0.0'
         }
       };

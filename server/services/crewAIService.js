@@ -2,10 +2,10 @@ import FormBuilderAgent from '../agents/formBuilderAgent.js';
 import ChatAssistantAgent from '../agents/chatAssistantAgent.js';
 import logger from '../utils/logger.js';
 
-class LangChainAgentService {
+class EnhancedAgentService {
   constructor() {
     this.aiProvider = process.env.AI_PROVIDER || 'azure';
-    this.llmConfig = null;
+    this.config = null;
     this.formBuilderAgent = null;
     this.chatAssistantAgent = null;
     this.initialized = false;
@@ -15,39 +15,40 @@ class LangChainAgentService {
 
   async initializeService() {
     try {
-      // Initialize LLM configuration
-      this.initializeLLMConfig();
+      // Initialize configuration
+      this.initializeConfig();
       
       // Initialize agents
-      this.formBuilderAgent = new FormBuilderAgent(this.llmConfig);
-      this.chatAssistantAgent = new ChatAssistantAgent(this.llmConfig);
+      this.formBuilderAgent = new FormBuilderAgent(this.config);
+      this.chatAssistantAgent = new ChatAssistantAgent(this.config);
       
       this.initialized = true;
       
-      logger.info('LangChain Agent Service initialized successfully', {
+      logger.info('Enhanced Agent Service initialized successfully', {
         provider: this.aiProvider,
         hasFormBuilder: !!this.formBuilderAgent,
         hasChatAssistant: !!this.chatAssistantAgent
       });
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.initializeService' });
+      logger.logError(error, { context: 'EnhancedAgentService.initializeService' });
       this.initialized = false;
     }
   }
 
-  initializeLLMConfig() {
+  initializeConfig() {
     try {
       if (this.aiProvider === 'azure') {
         if (!process.env.AZURE_OPENAI_ENDPOINT || !process.env.AZURE_OPENAI_API_KEY) {
           throw new Error('Azure OpenAI credentials not configured');
         }
 
-        this.llmConfig = {
+        this.config = {
+          provider: 'azure',
+          apiKey: process.env.AZURE_OPENAI_API_KEY,
+          endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+          apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
+          deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
           model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-35-turbo',
-          azureApiKey: process.env.AZURE_OPENAI_API_KEY,
-          azureApiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
-          azureInstanceName: this.extractInstanceName(process.env.AZURE_OPENAI_ENDPOINT),
-          azureDeploymentName: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
           temperature: parseFloat(process.env.AZURE_OPENAI_TEMPERATURE) || 0.7,
           maxTokens: parseInt(process.env.AZURE_OPENAI_MAX_TOKENS) || 2000
         };
@@ -57,9 +58,10 @@ class LangChainAgentService {
           throw new Error('OpenAI API key not configured');
         }
 
-        this.llmConfig = {
-          model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+        this.config = {
+          provider: 'openai',
           apiKey: process.env.OPENAI_API_KEY,
+          model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
           temperature: parseFloat(process.env.OPENAI_TEMPERATURE) || 0.7,
           maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
         };
@@ -68,18 +70,11 @@ class LangChainAgentService {
         throw new Error(`Unsupported AI provider: ${this.aiProvider}`);
       }
 
-      logger.info('LLM configuration initialized successfully', { provider: this.aiProvider });
+      logger.info('Configuration initialized successfully', { provider: this.aiProvider });
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.initializeLLMConfig' });
+      logger.logError(error, { context: 'EnhancedAgentService.initializeConfig' });
       throw error;
     }
-  }
-
-  extractInstanceName(endpoint) {
-    // Extract instance name from Azure OpenAI endpoint
-    // Format: https://your-resource.openai.azure.com/
-    const match = endpoint.match(/https:\/\/([^.]+)\.openai\.azure\.com/);
-    return match ? match[1] : null;
   }
 
   /**
@@ -89,7 +84,7 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      logger.info('Generating form with LangChain agents', { 
+      logger.info('Generating form with Enhanced agents', { 
         description: description.substring(0, 100),
         requirements 
       });
@@ -99,8 +94,8 @@ class LangChainAgentService {
       logger.info('Form generation completed successfully');
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.generateForm' });
-      throw new Error(`LangChain form generation failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.generateForm' });
+      throw new Error(`Enhanced form generation failed: ${error.message}`);
     }
   }
 
@@ -108,7 +103,7 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      logger.info('Optimizing form with LangChain agents', { 
+      logger.info('Optimizing form with Enhanced agents', { 
         formTitle: existingForm.title,
         goals 
       });
@@ -118,8 +113,8 @@ class LangChainAgentService {
       logger.info('Form optimization completed successfully');
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.optimizeForm' });
-      throw new Error(`LangChain form optimization failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.optimizeForm' });
+      throw new Error(`Enhanced form optimization failed: ${error.message}`);
     }
   }
 
@@ -127,7 +122,7 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      logger.info('Validating form with LangChain agents', { 
+      logger.info('Validating form with Enhanced agents', { 
         formTitle: formData.title 
       });
 
@@ -136,8 +131,8 @@ class LangChainAgentService {
       logger.info('Form validation completed successfully');
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.validateForm' });
-      throw new Error(`LangChain form validation failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.validateForm' });
+      throw new Error(`Enhanced form validation failed: ${error.message}`);
     }
   }
 
@@ -148,7 +143,7 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      logger.info('Processing chat message with LangChain agents', { 
+      logger.info('Processing chat message with Enhanced agents', { 
         conversationId,
         messageLength: message.length 
       });
@@ -162,7 +157,7 @@ class LangChainAgentService {
       logger.info('Chat message processed successfully');
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.handleChatMessage' });
+      logger.logError(error, { context: 'EnhancedAgentService.handleChatMessage' });
       
       // Return fallback response
       return {
@@ -178,7 +173,7 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      logger.info('Processing knowledge query with LangChain agents', { 
+      logger.info('Processing knowledge query with Enhanced agents', { 
         query: query.substring(0, 100),
         domain 
       });
@@ -188,8 +183,8 @@ class LangChainAgentService {
       logger.info('Knowledge query processed successfully');
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.handleKnowledgeQuery' });
-      throw new Error(`LangChain knowledge query failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.handleKnowledgeQuery' });
+      throw new Error(`Enhanced knowledge query failed: ${error.message}`);
     }
   }
 
@@ -200,8 +195,8 @@ class LangChainAgentService {
       const result = await this.chatAssistantAgent.analyzeConversation(conversationId);
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.analyzeConversation' });
-      throw new Error(`LangChain conversation analysis failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.analyzeConversation' });
+      throw new Error(`Enhanced conversation analysis failed: ${error.message}`);
     }
   }
 
@@ -212,8 +207,8 @@ class LangChainAgentService {
       const result = await this.chatAssistantAgent.getConversationSummary(conversationId);
       return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.getConversationSummary' });
-      throw new Error(`LangChain conversation summary failed: ${error.message}`);
+      logger.logError(error, { context: 'EnhancedAgentService.getConversationSummary' });
+      throw new Error(`Enhanced conversation summary failed: ${error.message}`);
     }
   }
 
@@ -221,25 +216,25 @@ class LangChainAgentService {
    * Utility Methods
    */
   isEnabled() {
-    return this.initialized && !!this.llmConfig;
+    return this.initialized && !!this.config;
   }
 
   ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('LangChain Agent Service not initialized');
+      throw new Error('Enhanced Agent Service not initialized');
     }
   }
 
   getServiceInfo() {
     return {
-      service: 'LangChain Agents',
+      service: 'Enhanced AI Agents',
       provider: this.aiProvider,
       initialized: this.initialized,
       hasFormBuilder: !!this.formBuilderAgent,
       hasChatAssistant: !!this.chatAssistantAgent,
-      llmModel: this.llmConfig?.model,
-      temperature: this.llmConfig?.temperature,
-      maxTokens: this.llmConfig?.maxTokens
+      model: this.config?.model,
+      temperature: this.config?.temperature,
+      maxTokens: this.config?.maxTokens
     };
   }
 
@@ -249,7 +244,7 @@ class LangChainAgentService {
     }
 
     return {
-      service: 'LangChain Agents',
+      service: 'Enhanced AI Agents',
       formBuilder: this.formBuilderAgent ? 'available' : 'unavailable',
       chatAssistant: this.chatAssistantAgent ? 'available' : 'unavailable',
       chatStats: this.chatAssistantAgent ? 
@@ -293,7 +288,7 @@ class LangChainAgentService {
 
       return {
         status: 'healthy',
-        service: 'LangChain Agents',
+        service: 'Enhanced AI Agents',
         provider: this.aiProvider,
         agents: {
           formBuilder: !!this.formBuilderAgent,
@@ -303,7 +298,7 @@ class LangChainAgentService {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.healthCheck' });
+      logger.logError(error, { context: 'EnhancedAgentService.healthCheck' });
       
       return {
         status: 'unhealthy',
@@ -322,11 +317,11 @@ class LangChainAgentService {
       this.chatAssistantAgent.cleanup();
       
       const stats = this.chatAssistantAgent.getStatistics();
-      logger.info('Cleaning up LangChain Agent Service', { stats });
+      logger.info('Cleaning up Enhanced Agent Service', { stats });
     }
     
     this.initialized = false;
-    logger.info('LangChain Agent Service cleaned up');
+    logger.info('Enhanced Agent Service cleaned up');
   }
 
   /**
@@ -346,21 +341,10 @@ class LangChainAgentService {
     this.ensureInitialized();
     
     try {
-      const memory = this.chatAssistantAgent.getConversationMemory(conversationId);
-      const chatHistory = await memory.chatHistory.getMessages();
-      
-      return {
-        conversationId,
-        messages: chatHistory.map(msg => ({
-          type: msg._getType(),
-          content: msg.content,
-          timestamp: msg.timestamp || new Date().toISOString()
-        })),
-        messageCount: chatHistory.length,
-        timestamp: new Date().toISOString()
-      };
+      const result = this.chatAssistantAgent.getConversationHistory(conversationId);
+      return result;
     } catch (error) {
-      logger.logError(error, { context: 'LangChainAgentService.getConversationHistory' });
+      logger.logError(error, { context: 'EnhancedAgentService.getConversationHistory' });
       return {
         conversationId,
         messages: [],
@@ -372,4 +356,4 @@ class LangChainAgentService {
 }
 
 // Export singleton instance
-export default new LangChainAgentService();
+export default new EnhancedAgentService();
