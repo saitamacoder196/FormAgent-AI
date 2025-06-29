@@ -683,9 +683,9 @@ const FormAgent = () => {
         };
         setMessages(prev => [...prev, botResponse]);
         
-        // Show service indicator if using CrewAI
-        if (result.service === 'CrewAI') {
-          console.log('✨ Powered by CrewAI Multi-Agent System');
+        // Show service indicator if using LangChain
+        if (result.service === 'LangChain') {
+          console.log('✨ Powered by LangChain Multi-Agent System');
         }
       } else {
         throw new Error(result.error || 'Chat API call failed');
@@ -717,7 +717,9 @@ Tôi có thể giúp bạn:
 
 Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều gì! 😊
 
-*💡 Tip: Nói "tạo form" để tạo form mới hoặc chỉ cần trò chuyện bình thường!*`,
+*💡 Tip: Nói "tạo form" để tạo form mới hoặc chỉ cần trò chuyện bình thường!*
+
+*🔧 Powered by LangChain Multi-Agent System*`,
         service: 'fallback'
       };
       setMessages(prev => [...prev, fallbackResponse]);

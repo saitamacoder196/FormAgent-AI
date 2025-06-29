@@ -1,133 +1,32 @@
-import { Agent, Task, Crew } from 'crewai';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { StringOutputParser } from '@langchain/core/output_parsers';
 import logger from '../utils/logger.js';
 
 class FormBuilderAgent {
-  constructor(aiService) {
-    this.aiService = aiService;
-    this.agent = new Agent({
-      role: 'Form Design Specialist',
-      goal: 'Create intelligent, user-friendly forms based on user requirements',
-      backstory: `You are an expert form designer with deep knowledge of UX/UI principles, 
-                  form validation, and user experience optimization. You understand different 
-                  form types and can create forms that are both functional and intuitive.`,
-      verbose: true,
-      allow_delegation: false,
-      llm: this.aiService // Will be configured with CrewAI's LLM interface
+  constructor(llmConfig) {
+    this.llm = new ChatOpenAI({
+      model: llmConfig.model || 'gpt-3.5-turbo',
+      temperature: llmConfig.temperature || 0.7,
+      maxTokens: llmConfig.maxTokens || 2000,
+      openAIApiKey: llmConfig.apiKey,
+      azureOpenAIApiKey: llmConfig.azureApiKey,
+      azureOpenAIApiVersion: llmConfig.azureApiVersion,
+      azureOpenAIApiInstanceName: llmConfig.azureInstanceName,
+      azureOpenAIApiDeploymentName: llmConfig.azureDeploymentName
     });
     
-    logger.info('FormBuilder Agent initialized', { agent: 'FormBuilderAgent' });
-  }
-
-  /**
-   * Create a form generation task
-   */
-  createFormGenerationTask(description, requirements = {}) {
-    return new Task({
-      description: `Create a comprehensive form based on the following requirements:
-        
-        User Description: ${description}
-        
-        Requirements:
-        - Field Count: ${requirements.fieldCount || 5}
-        - Form Type: ${requirements.formType || 'contact'}
-        - Target Audience: ${requirements.targetAudience || 'general'}
-        - Include Validation: ${requirements.includeValidation !== false}
-        - Language: ${requirements.language || 'English'}
-        
-        Generate a JSON structure with the following format:
-        {
-          "title": "Form Title",
-          "description": "Brief form description",
-          "fields": [
-            {
-              "type": "text|email|password|textarea|select|radio|checkbox|number|date|file",
-              "name": "field_name",
-              "label": "Field Label", 
-              "placeholder": "Placeholder text",
-              "required": boolean,
-              "validation": {
-                "pattern": "regex_pattern",
-                "message": "validation_message"
-              },
-              "options": ["option1", "option2"] // only for select, radio, checkbox
-            }
-          ],
-          "styling": {
-            "theme": "modern|classic|minimal",
-            "primaryColor": "#color",
-            "layout": "single-column|two-column"
-          },
-          "settings": {
-            "allowMultipleSubmissions": boolean,
-            "showProgressBar": boolean,
-            "redirectAfterSubmit": "url"
-          }
-        }
-        
-        Make the form practical, accessible, and user-friendly.`,
-      agent: this.agent,
-      expected_output: 'A complete JSON form structure with all necessary fields, validation, and styling'
+    this.outputParser = new StringOutputParser();
+    this.role = 'Form Design Specialist';
+    
+    logger.info('FormBuilder Agent initialized', { 
+      agent: 'FormBuilderAgent',
+      model: llmConfig.model 
     });
   }
 
   /**
-   * Create a form optimization task
-   */
-  createOptimizationTask(existingForm, optimizationGoals) {
-    return new Task({
-      description: `Optimize the following form based on the specified goals:
-        
-        Existing Form: ${JSON.stringify(existingForm, null, 2)}
-        
-        Optimization Goals: ${optimizationGoals.join(', ')}
-        
-        Analyze the current form and provide:
-        1. Identified issues and improvement opportunities
-        2. Optimized form structure
-        3. Explanation of changes made
-        4. Expected impact on user experience
-        
-        Focus on:
-        - User experience improvements
-        - Conversion rate optimization
-        - Accessibility enhancements
-        - Validation improvements
-        - Field ordering and grouping`,
-      agent: this.agent,
-      expected_output: 'Optimized form structure with detailed explanation of improvements'
-    });
-  }
-
-  /**
-   * Create a form validation task
-   */
-  createValidationTask(formData) {
-    return new Task({
-      description: `Validate and improve the following form structure:
-        
-        Form Data: ${JSON.stringify(formData, null, 2)}
-        
-        Check for:
-        1. Field type consistency
-        2. Validation rule completeness
-        3. Accessibility compliance
-        4. User experience best practices
-        5. Required field appropriateness
-        6. Field naming conventions
-        7. Label clarity and completeness
-        
-        Provide:
-        - Validation results
-        - Issues found with severity levels
-        - Recommended fixes
-        - Improved form structure`,
-      agent: this.agent,
-      expected_output: 'Validation report with corrected form structure'
-    });
-  }
-
-  /**
-   * Generate a form using CrewAI
+   * Generate a form using LangChain
    */
   async generateForm(description, requirements = {}) {
     try {
@@ -136,15 +35,64 @@ class FormBuilderAgent {
         requirements 
       });
 
-      const task = this.createFormGenerationTask(description, requirements);
-      
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: true
-      });
+      const prompt = ChatPromptTemplate.fromTemplate(`
+You are an expert form designer with deep knowledge of UX/UI principles, form validation, and user experience optimization.
 
-      const result = await crew.kickoff();
+Create a comprehensive form based on the following requirements:
+
+User Description: {description}
+
+Requirements:
+- Field Count: {fieldCount}
+- Form Type: {formType}
+- Target Audience: {targetAudience}
+- Include Validation: {includeValidation}
+- Language: {language}
+
+Generate a JSON structure with the following format:
+{{
+  "title": "Form Title",
+  "description": "Brief form description",
+  "fields": [
+    {{
+      "id": "field_id",
+      "type": "text|email|password|textarea|select|radio|checkbox|number|date|file",
+      "name": "field_name",
+      "label": "Field Label", 
+      "placeholder": "Placeholder text",
+      "required": boolean,
+      "validation": {{
+        "pattern": "regex_pattern",
+        "message": "validation_message"
+      }},
+      "options": ["option1", "option2"] // only for select, radio, checkbox
+    }}
+  ],
+  "styling": {{
+    "theme": "modern|classic|minimal",
+    "primaryColor": "#color",
+    "layout": "single-column|two-column"
+  }},
+  "settings": {{
+    "allowMultipleSubmissions": boolean,
+    "showProgressBar": boolean,
+    "redirectAfterSubmit": "url"
+  }}
+}}
+
+Make the form practical, accessible, and user-friendly. Focus on creating meaningful field IDs, proper validation, and good UX.
+Return only the JSON structure, no additional text.`);
+
+      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
+      
+      const result = await chain.invoke({
+        description,
+        fieldCount: requirements.fieldCount || 5,
+        formType: requirements.formType || 'contact',
+        targetAudience: requirements.targetAudience || 'general',
+        includeValidation: requirements.includeValidation !== false,
+        language: requirements.language || 'English'
+      });
       
       logger.info('Form generation completed', { 
         hasResult: !!result,
@@ -168,15 +116,45 @@ class FormBuilderAgent {
         goals 
       });
 
-      const task = this.createOptimizationTask(existingForm, goals);
-      
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: true
-      });
+      const prompt = ChatPromptTemplate.fromTemplate(`
+You are a form optimization expert. Analyze the following form and provide optimization recommendations.
 
-      const result = await crew.kickoff();
+Existing Form: {existingForm}
+
+Optimization Goals: {goals}
+
+Analyze the current form and provide:
+1. **Issues Found**: List specific problems with the current form
+2. **Optimization Recommendations**: Detailed suggestions for improvements
+3. **Optimized Form Structure**: Complete improved JSON structure
+4. **Expected Impact**: How these changes will improve user experience
+
+Focus on:
+- User experience improvements
+- Conversion rate optimization
+- Accessibility enhancements
+- Validation improvements
+- Field ordering and grouping
+
+Format your response as:
+## Issues Found
+[List of issues]
+
+## Optimization Recommendations  
+[Detailed recommendations]
+
+## Optimized Form Structure
+[JSON structure]
+
+## Expected Impact
+[Expected improvements]`);
+
+      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
+      
+      const result = await chain.invoke({
+        existingForm: JSON.stringify(existingForm, null, 2),
+        goals: goals.join(', ')
+      });
       
       logger.info('Form optimization completed');
 
@@ -197,15 +175,44 @@ class FormBuilderAgent {
         fieldCount: formData.fields?.length 
       });
 
-      const task = this.createValidationTask(formData);
-      
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: true
-      });
+      const prompt = ChatPromptTemplate.fromTemplate(`
+You are a form validation expert. Review the following form for issues and improvements.
 
-      const result = await crew.kickoff();
+Form Data: {formData}
+
+Check for:
+1. Field type consistency
+2. Validation rule completeness  
+3. Accessibility compliance
+4. User experience best practices
+5. Required field appropriateness
+6. Field naming conventions
+7. Label clarity and completeness
+
+Provide:
+- **Validation Status**: VALID or INVALID
+- **Issues Found**: List of problems with severity levels (LOW, MEDIUM, HIGH, CRITICAL)
+- **Suggestions**: Recommended fixes for each issue
+- **Corrected Form**: Improved form structure (if needed)
+
+Format as:
+## Validation Status
+[VALID/INVALID]
+
+## Issues Found
+- [SEVERITY] Issue description
+
+## Suggestions  
+- Fix for each issue
+
+## Corrected Form
+[JSON structure if corrections needed]`);
+
+      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
+      
+      const result = await chain.invoke({
+        formData: JSON.stringify(formData, null, 2)
+      });
       
       logger.info('Form validation completed');
 
@@ -249,7 +256,7 @@ class FormBuilderAgent {
       // Add metadata
       parsed.metadata = {
         generatedAt: new Date().toISOString(),
-        generator: 'CrewAI-FormBuilder',
+        generator: 'LangChain-FormBuilder',
         version: '1.0.0'
       };
 
@@ -260,7 +267,7 @@ class FormBuilderAgent {
       // Return default form structure on parse error
       return {
         title: 'Generated Form',
-        description: 'AI-generated form using CrewAI',
+        description: 'AI-generated form using LangChain',
         fields: [
           {
             id: 'field_0',
@@ -293,7 +300,7 @@ class FormBuilderAgent {
         },
         metadata: {
           generatedAt: new Date().toISOString(),
-          generator: 'CrewAI-FormBuilder-Fallback',
+          generator: 'LangChain-FormBuilder-Fallback',
           version: '1.0.0'
         }
       };
@@ -305,13 +312,24 @@ class FormBuilderAgent {
    */
   parseOptimizationResult(result) {
     try {
-      const analysis = this.extractAnalysisFromResult(result);
-      const optimizedForm = this.extractFormFromResult(result);
+      const analysis = this.extractSection(result, 'Issues Found', 'Optimization Recommendations');
+      const recommendations = this.extractSection(result, 'Optimization Recommendations', 'Optimized Form Structure');
+      const optimizedFormText = this.extractSection(result, 'Optimized Form Structure', 'Expected Impact');
+      const impact = this.extractSection(result, 'Expected Impact', null);
+      
+      let optimizedForm = null;
+      if (optimizedFormText) {
+        const jsonMatch = optimizedFormText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          optimizedForm = JSON.parse(jsonMatch[0]);
+        }
+      }
       
       return {
         analysis,
+        recommendations: recommendations?.split('\n').filter(line => line.trim()),
         optimizedForm,
-        improvements: this.extractImprovementsFromResult(result),
+        expectedImpact: impact,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -329,11 +347,24 @@ class FormBuilderAgent {
    */
   parseValidationResult(result) {
     try {
+      const status = this.extractSection(result, 'Validation Status', 'Issues Found');
+      const issues = this.extractSection(result, 'Issues Found', 'Suggestions');
+      const suggestions = this.extractSection(result, 'Suggestions', 'Corrected Form');
+      const correctedFormText = this.extractSection(result, 'Corrected Form', null);
+      
+      let correctedForm = null;
+      if (correctedFormText) {
+        const jsonMatch = correctedFormText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          correctedForm = JSON.parse(jsonMatch[0]);
+        }
+      }
+      
       return {
-        isValid: this.extractValidationStatus(result),
-        issues: this.extractIssuesFromResult(result),
-        suggestions: this.extractSuggestionsFromResult(result),
-        correctedForm: this.extractFormFromResult(result),
+        isValid: status?.trim().toUpperCase() === 'VALID',
+        issues: issues?.split('\n').filter(line => line.trim()) || [],
+        suggestions: suggestions?.split('\n').filter(line => line.trim()) || [],
+        correctedForm,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -349,35 +380,26 @@ class FormBuilderAgent {
   }
 
   /**
-   * Helper methods for parsing results
+   * Helper method to extract sections from markdown-like text
    */
-  extractAnalysisFromResult(result) {
-    const analysisMatch = result.match(/Analysis:([\s\S]*?)(?=Optimized Form:|$)/i);
-    return analysisMatch ? analysisMatch[1].trim() : 'No analysis available';
-  }
-
-  extractFormFromResult(result) {
-    const jsonMatch = result.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-  }
-
-  extractImprovementsFromResult(result) {
-    const improvementsMatch = result.match(/Improvements:([\s\S]*?)(?=Expected Impact:|$)/i);
-    return improvementsMatch ? improvementsMatch[1].trim().split('\n') : [];
-  }
-
-  extractValidationStatus(result) {
-    return result.toLowerCase().includes('valid') && !result.toLowerCase().includes('invalid');
-  }
-
-  extractIssuesFromResult(result) {
-    const issuesMatch = result.match(/Issues:([\s\S]*?)(?=Suggestions:|$)/i);
-    return issuesMatch ? issuesMatch[1].trim().split('\n').filter(line => line.trim()) : [];
-  }
-
-  extractSuggestionsFromResult(result) {
-    const suggestionsMatch = result.match(/Suggestions:([\s\S]*?)(?=Corrected Form:|$)/i);
-    return suggestionsMatch ? suggestionsMatch[1].trim().split('\n').filter(line => line.trim()) : [];
+  extractSection(text, startMarker, endMarker) {
+    const startPattern = new RegExp(`##\\s*${startMarker}\\s*`, 'i');
+    const startMatch = text.search(startPattern);
+    
+    if (startMatch === -1) return null;
+    
+    let endMatch = text.length;
+    if (endMarker) {
+      const endPattern = new RegExp(`##\\s*${endMarker}\\s*`, 'i');
+      const endIndex = text.search(endPattern);
+      if (endIndex > startMatch) {
+        endMatch = endIndex;
+      }
+    }
+    
+    return text.substring(startMatch, endMatch)
+      .replace(startPattern, '')
+      .trim();
   }
 }
 

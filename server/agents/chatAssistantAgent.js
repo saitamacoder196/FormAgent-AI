@@ -1,110 +1,52 @@
-import { Agent, Task, Crew } from 'crewai';
+import { ChatOpenAI } from '@langchain/openai';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { BufferMemory } from 'langchain/memory';
+import { ConversationChain } from 'langchain/chains';
 import logger from '../utils/logger.js';
 
 class ChatAssistantAgent {
-  constructor(aiService) {
-    this.aiService = aiService;
-    this.agent = new Agent({
-      role: 'Conversational AI Assistant',
-      goal: 'Provide helpful, accurate, and engaging responses to user queries while maintaining context and personality',
-      backstory: `You are a friendly and knowledgeable AI assistant specialized in helping users with 
-                  general questions, providing information, and having natural conversations. You have 
-                  expertise in various topics and can engage in meaningful dialogue while being helpful 
-                  and informative.`,
-      verbose: true,
-      allow_delegation: false,
-      llm: this.aiService
+  constructor(llmConfig) {
+    this.llm = new ChatOpenAI({
+      model: llmConfig.model || 'gpt-3.5-turbo',
+      temperature: llmConfig.temperature || 0.7,
+      maxTokens: llmConfig.maxTokens || 2000,
+      openAIApiKey: llmConfig.apiKey,
+      azureOpenAIApiKey: llmConfig.azureApiKey,
+      azureOpenAIApiVersion: llmConfig.azureApiVersion,
+      azureOpenAIApiInstanceName: llmConfig.azureInstanceName,
+      azureOpenAIApiDeploymentName: llmConfig.azureDeploymentName
     });
     
-    // Conversation memory
-    this.conversationHistory = new Map();
+    this.outputParser = new StringOutputParser();
+    this.role = 'Conversational AI Assistant';
     
-    logger.info('ChatAssistant Agent initialized', { agent: 'ChatAssistantAgent' });
-  }
-
-  /**
-   * Create a chat response task
-   */
-  createChatTask(message, conversationId, context = {}) {
-    const history = this.getConversationHistory(conversationId);
+    // Conversation memories for different sessions
+    this.conversationMemories = new Map();
     
-    return new Task({
-      description: `Respond to the user's message in a helpful and engaging way.
-        
-        Current Message: ${message}
-        
-        Conversation History: ${history.length > 0 ? JSON.stringify(history.slice(-5)) : 'No previous conversation'}
-        
-        Context Information:
-        - User ID: ${context.userId || 'anonymous'}
-        - Session ID: ${conversationId}
-        - Timestamp: ${new Date().toISOString()}
-        - Language: ${context.language || 'English'}
-        
-        Guidelines:
-        1. Be friendly, helpful, and conversational
-        2. Provide accurate and relevant information
-        3. Ask clarifying questions when needed
-        4. Maintain context from previous messages
-        5. Be concise but thorough
-        6. Use appropriate tone for the conversation
-        7. If you don't know something, say so honestly
-        8. Avoid generating forms unless explicitly requested
-        
-        Response should be natural and engaging, as if you're having a real conversation with the user.`,
-      agent: this.agent,
-      expected_output: 'A natural, helpful response that continues the conversation appropriately'
+    logger.info('ChatAssistant Agent initialized', { 
+      agent: 'ChatAssistantAgent',
+      model: llmConfig.model 
     });
   }
 
   /**
-   * Create a knowledge query task
+   * Get or create conversation memory for a session
    */
-  createKnowledgeTask(query, domain = 'general') {
-    return new Task({
-      description: `Answer the following knowledge query with accurate and comprehensive information:
-        
-        Query: ${query}
-        Domain: ${domain}
-        
-        Provide:
-        1. Direct answer to the question
-        2. Relevant context and background
-        3. Examples if applicable
-        4. Additional related information that might be helpful
-        5. Sources or references when appropriate
-        
-        Make the response informative yet accessible, suitable for someone seeking to learn about this topic.`,
-      agent: this.agent,
-      expected_output: 'Comprehensive and accurate information addressing the query'
-    });
+  getConversationMemory(conversationId) {
+    if (!this.conversationMemories.has(conversationId)) {
+      const memory = new BufferMemory({
+        returnMessages: true,
+        memoryKey: 'history',
+        inputKey: 'input'
+      });
+      this.conversationMemories.set(conversationId, memory);
+    }
+    return this.conversationMemories.get(conversationId);
   }
 
   /**
-   * Create a conversation analysis task
-   */
-  createAnalysisTask(conversationHistory) {
-    return new Task({
-      description: `Analyze the following conversation to understand context and user intent:
-        
-        Conversation History: ${JSON.stringify(conversationHistory, null, 2)}
-        
-        Analyze:
-        1. User's primary intent and goals
-        2. Conversation topics and themes
-        3. User's communication style and preferences
-        4. Any unresolved questions or concerns
-        5. Opportunities to provide additional help
-        6. Sentiment and tone of the conversation
-        
-        Provide insights that will help improve future responses and user experience.`,
-      agent: this.agent,
-      expected_output: 'Detailed conversation analysis with actionable insights'
-    });
-  }
-
-  /**
-   * Handle chat message
+   * Handle chat message with context and memory
    */
   async handleChatMessage(message, conversationId, context = {}) {
     try {
@@ -114,41 +56,63 @@ class ChatAssistantAgent {
         userId: context.userId 
       });
 
-      // Add message to conversation history
-      this.addToConversationHistory(conversationId, {
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString()
+      const memory = this.getConversationMemory(conversationId);
+      
+      const prompt = ChatPromptTemplate.fromTemplate(`
+You are FormAgent AI, a friendly and knowledgeable AI assistant specialized in helping users with form creation and general conversation.
+
+Your capabilities include:
+1. Answering general questions in a natural and helpful way
+2. Providing advice on form design and user experience
+3. Explaining FormAgent features and capabilities
+4. Having engaging conversations while being informative
+
+Context Information:
+- User ID: {userId}
+- Language: {language}
+- Timestamp: {timestamp}
+
+Guidelines:
+- Be friendly, helpful, and conversational
+- Provide accurate and relevant information
+- Ask clarifying questions when needed
+- Maintain context from previous messages
+- Be concise but thorough
+- Use appropriate tone for the conversation
+- If you don't know something, say so honestly
+- For form creation requests, guide users to use specific keywords like "tạo form", "tạo biểu mẫu"
+
+Previous conversation context: {history}
+
+Current message: {input}
+
+Respond naturally and helpfully in {language}:`);
+
+      const chain = new ConversationChain({
+        llm: this.llm,
+        memory: memory,
+        prompt: prompt,
+        outputParser: this.outputParser
       });
 
-      const task = this.createChatTask(message, conversationId, context);
-      
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: false // Less verbose for chat responses
-      });
-
-      const result = await crew.kickoff();
-      
-      // Add assistant response to history
-      this.addToConversationHistory(conversationId, {
-        role: 'assistant',
-        content: result,
+      const result = await chain.call({
+        input: message,
+        userId: context.userId || 'anonymous',
+        language: context.language || 'English',
         timestamp: new Date().toISOString()
       });
 
       logger.info('Chat message processed successfully', { 
         conversationId,
-        responseLength: result?.length 
+        responseLength: result.response?.length 
       });
 
       return {
-        response: result,
+        response: result.response,
         conversationId,
         timestamp: new Date().toISOString(),
         context: {
-          messageCount: this.getConversationHistory(conversationId).length,
+          messageCount: await this.getMessageCount(conversationId),
           lastActivity: new Date().toISOString()
         }
       };
@@ -157,7 +121,7 @@ class ChatAssistantAgent {
       
       // Fallback response
       return {
-        response: "I apologize, but I'm having trouble processing your message right now. Could you please try again?",
+        response: "Xin lỗi, tôi đang gặp một chút khó khăn trong việc xử lý tin nhắn của bạn. Bạn có thể thử lại không?",
         conversationId,
         timestamp: new Date().toISOString(),
         error: true
@@ -175,15 +139,29 @@ class ChatAssistantAgent {
         domain 
       });
 
-      const task = this.createKnowledgeTask(query, domain);
-      
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: false
-      });
+      const prompt = ChatPromptTemplate.fromTemplate(`
+You are a knowledgeable assistant specializing in {domain}. Answer the following query with accurate and comprehensive information.
 
-      const result = await crew.kickoff();
+Query: {query}
+Domain: {domain}
+
+Provide:
+1. Direct answer to the question
+2. Relevant context and background
+3. Examples if applicable  
+4. Additional related information that might be helpful
+5. Sources or references when appropriate
+
+Make the response informative yet accessible, suitable for someone seeking to learn about this topic.
+
+Answer in a clear, structured format:`);
+
+      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
+      
+      const result = await chain.invoke({
+        query,
+        domain
+      });
       
       logger.info('Knowledge query processed successfully');
 
@@ -201,13 +179,14 @@ class ChatAssistantAgent {
   }
 
   /**
-   * Analyze conversation
+   * Analyze conversation patterns and insights
    */
   async analyzeConversation(conversationId) {
     try {
-      const history = this.getConversationHistory(conversationId);
+      const memory = this.getConversationMemory(conversationId);
+      const chatHistory = await memory.chatHistory.getMessages();
       
-      if (history.length === 0) {
+      if (chatHistory.length === 0) {
         return {
           analysis: 'No conversation history available',
           insights: [],
@@ -217,18 +196,50 @@ class ChatAssistantAgent {
 
       logger.info('Analyzing conversation', { 
         conversationId,
-        messageCount: history.length 
+        messageCount: chatHistory.length 
       });
 
-      const task = this.createAnalysisTask(history);
+      const prompt = ChatPromptTemplate.fromTemplate(`
+Analyze the following conversation to understand patterns, user intent, and provide insights.
+
+Conversation History: {chatHistory}
+
+Analyze:
+1. **User Intent**: Primary goals and objectives of the user
+2. **Conversation Topics**: Main themes and subjects discussed
+3. **User Communication Style**: How the user prefers to communicate
+4. **Unresolved Issues**: Any questions or concerns not fully addressed
+5. **Improvement Opportunities**: Ways to enhance future interactions
+6. **Sentiment Analysis**: Overall tone and satisfaction level
+
+Provide insights in the following format:
+## User Intent
+[Primary goals and objectives]
+
+## Key Topics
+[Main themes discussed]
+
+## Communication Style  
+[User preferences and patterns]
+
+## Unresolved Issues
+[Outstanding questions or concerns]
+
+## Recommendations
+[Suggestions for improvement]
+
+## Sentiment
+[Overall tone assessment]`);
+
+      const chain = prompt.pipe(this.llm).pipe(this.outputParser);
       
-      const crew = new Crew({
-        agents: [this.agent],
-        tasks: [task],
-        verbose: false
+      const historyText = chatHistory.map(msg => 
+        `${msg._getType()}: ${msg.content}`
+      ).join('\n');
+      
+      const result = await chain.invoke({
+        chatHistory: historyText
       });
-
-      const result = await crew.kickoff();
       
       return this.parseAnalysisResult(result, conversationId);
     } catch (error) {
@@ -242,9 +253,10 @@ class ChatAssistantAgent {
    */
   async getConversationSummary(conversationId) {
     try {
-      const history = this.getConversationHistory(conversationId);
+      const memory = this.getConversationMemory(conversationId);
+      const chatHistory = await memory.chatHistory.getMessages();
       
-      if (history.length === 0) {
+      if (chatHistory.length === 0) {
         return {
           summary: 'No conversation history',
           keyPoints: [],
@@ -252,20 +264,18 @@ class ChatAssistantAgent {
         };
       }
 
-      const firstMessage = new Date(history[0].timestamp);
-      const lastMessage = new Date(history[history.length - 1].timestamp);
-      const duration = lastMessage - firstMessage;
-
-      const userMessages = history.filter(msg => msg.role === 'user');
-      const assistantMessages = history.filter(msg => msg.role === 'assistant');
+      const messageCount = chatHistory.length;
+      const userMessages = chatHistory.filter(msg => msg._getType() === 'human');
+      const assistantMessages = chatHistory.filter(msg => msg._getType() === 'ai');
 
       return {
-        summary: `Conversation with ${userMessages.length} user messages and ${assistantMessages.length} assistant responses`,
-        keyPoints: this.extractKeyPoints(history),
-        duration: Math.round(duration / 1000 / 60), // minutes
-        messageCount: history.length,
-        startTime: firstMessage.toISOString(),
-        lastActivity: lastMessage.toISOString()
+        summary: `Conversation với ${userMessages.length} tin nhắn từ người dùng và ${assistantMessages.length} phản hồi từ trợ lý`,
+        keyPoints: this.extractKeyPoints(chatHistory),
+        messageCount: messageCount,
+        userMessageCount: userMessages.length,
+        assistantMessageCount: assistantMessages.length,
+        conversationId,
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
       logger.logError(error, { context: 'ChatAssistantAgent.getConversationSummary' });
@@ -277,27 +287,24 @@ class ChatAssistantAgent {
   }
 
   /**
-   * Conversation memory management
+   * Clear conversation history
    */
-  getConversationHistory(conversationId) {
-    return this.conversationHistory.get(conversationId) || [];
-  }
-
-  addToConversationHistory(conversationId, message) {
-    const history = this.getConversationHistory(conversationId);
-    history.push(message);
-    
-    // Keep only last 50 messages to manage memory
-    if (history.length > 50) {
-      history.splice(0, history.length - 50);
-    }
-    
-    this.conversationHistory.set(conversationId, history);
-  }
-
   clearConversationHistory(conversationId) {
-    this.conversationHistory.delete(conversationId);
+    this.conversationMemories.delete(conversationId);
     logger.info('Conversation history cleared', { conversationId });
+  }
+
+  /**
+   * Get message count for a conversation
+   */
+  async getMessageCount(conversationId) {
+    try {
+      const memory = this.getConversationMemory(conversationId);
+      const chatHistory = await memory.chatHistory.getMessages();
+      return chatHistory.length;
+    } catch (error) {
+      return 0;
+    }
   }
 
   /**
@@ -305,9 +312,12 @@ class ChatAssistantAgent {
    */
   assessConfidence(result) {
     // Simple confidence assessment based on response characteristics
-    if (result.includes('I don\'t know') || result.includes('uncertain')) {
+    const lowerResult = result.toLowerCase();
+    if (lowerResult.includes("i don't know") || lowerResult.includes('uncertain') || 
+        lowerResult.includes('không biết') || lowerResult.includes('không chắc')) {
       return 'low';
-    } else if (result.includes('probably') || result.includes('might')) {
+    } else if (lowerResult.includes('probably') || lowerResult.includes('might') ||
+               lowerResult.includes('có thể') || lowerResult.includes('có lẽ')) {
       return 'medium';
     } else {
       return 'high';
@@ -316,14 +326,23 @@ class ChatAssistantAgent {
 
   parseAnalysisResult(result, conversationId) {
     try {
-      const insights = this.extractInsights(result);
-      const recommendations = this.extractRecommendations(result);
+      const userIntent = this.extractSection(result, 'User Intent', 'Key Topics');
+      const keyTopics = this.extractSection(result, 'Key Topics', 'Communication Style');
+      const communicationStyle = this.extractSection(result, 'Communication Style', 'Unresolved Issues');
+      const unresolvedIssues = this.extractSection(result, 'Unresolved Issues', 'Recommendations');
+      const recommendations = this.extractSection(result, 'Recommendations', 'Sentiment');
+      const sentiment = this.extractSection(result, 'Sentiment', null);
       
       return {
         conversationId,
-        analysis: result,
-        insights,
-        recommendations,
+        analysis: {
+          userIntent,
+          keyTopics: keyTopics?.split('\n').filter(line => line.trim()),
+          communicationStyle,
+          unresolvedIssues: unresolvedIssues?.split('\n').filter(line => line.trim()),
+          recommendations: recommendations?.split('\n').filter(line => line.trim()),
+          sentiment
+        },
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -336,10 +355,10 @@ class ChatAssistantAgent {
     }
   }
 
-  extractKeyPoints(history) {
+  extractKeyPoints(chatHistory) {
     // Extract key topics from conversation
-    const userMessages = history
-      .filter(msg => msg.role === 'user')
+    const userMessages = chatHistory
+      .filter(msg => msg._getType() === 'human')
       .map(msg => msg.content);
     
     // Simple keyword extraction (could be enhanced with NLP)
@@ -352,41 +371,72 @@ class ChatAssistantAgent {
     return Array.from(topics).slice(0, 5); // Top 5 keywords
   }
 
-  extractInsights(result) {
-    const insightsMatch = result.match(/Insights:([\s\S]*?)(?=Recommendations:|$)/i);
-    return insightsMatch ? 
-      insightsMatch[1].trim().split('\n').filter(line => line.trim()) : 
-      ['No specific insights extracted'];
-  }
-
-  extractRecommendations(result) {
-    const recommendationsMatch = result.match(/Recommendations:([\s\S]*?)$/i);
-    return recommendationsMatch ? 
-      recommendationsMatch[1].trim().split('\n').filter(line => line.trim()) : 
-      ['No specific recommendations available'];
+  extractSection(text, startMarker, endMarker) {
+    const startPattern = new RegExp(`##\\s*${startMarker}\\s*`, 'i');
+    const startMatch = text.search(startPattern);
+    
+    if (startMatch === -1) return null;
+    
+    let endMatch = text.length;
+    if (endMarker) {
+      const endPattern = new RegExp(`##\\s*${endMarker}\\s*`, 'i');
+      const endIndex = text.search(endPattern);
+      if (endIndex > startMatch) {
+        endMatch = endIndex;
+      }
+    }
+    
+    return text.substring(startMatch, endMatch)
+      .replace(startPattern, '')
+      .trim();
   }
 
   /**
    * Get agent statistics
    */
   getStatistics() {
-    const totalConversations = this.conversationHistory.size;
-    const totalMessages = Array.from(this.conversationHistory.values())
-      .reduce((sum, history) => sum + history.length, 0);
+    const totalConversations = this.conversationMemories.size;
+    let totalMessages = 0;
+    
+    // Count total messages across all conversations
+    this.conversationMemories.forEach(async (memory) => {
+      try {
+        const chatHistory = await memory.chatHistory.getMessages();
+        totalMessages += chatHistory.length;
+      } catch (error) {
+        // Ignore errors in counting
+      }
+    });
     
     return {
       totalConversations,
       totalMessages,
       averageMessagesPerConversation: totalConversations > 0 ? 
         Math.round(totalMessages / totalConversations) : 0,
-      activeConversations: Array.from(this.conversationHistory.entries())
-        .filter(([_, history]) => {
-          const lastMessage = history[history.length - 1];
-          const lastActivity = new Date(lastMessage?.timestamp || 0);
-          const now = new Date();
-          return (now - lastActivity) < 24 * 60 * 60 * 1000; // Active within 24h
-        }).length
+      activeConversations: totalConversations, // All stored conversations are considered active
+      timestamp: new Date().toISOString()
     };
+  }
+
+  /**
+   * Cleanup old conversations to manage memory
+   */
+  cleanup() {
+    const maxConversations = 100; // Keep only last 100 conversations
+    
+    if (this.conversationMemories.size > maxConversations) {
+      const conversationIds = Array.from(this.conversationMemories.keys());
+      const toDelete = conversationIds.slice(0, conversationIds.length - maxConversations);
+      
+      toDelete.forEach(id => {
+        this.conversationMemories.delete(id);
+      });
+      
+      logger.info('Cleaned up old conversations', { 
+        deleted: toDelete.length,
+        remaining: this.conversationMemories.size 
+      });
+    }
   }
 }
 

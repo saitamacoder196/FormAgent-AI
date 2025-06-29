@@ -1,6 +1,6 @@
 import express from 'express';
 import aiService from '../services/aiService.js';
-import crewAIService from '../services/crewAIService.js';
+import langChainService from '../services/langChainService.js';
 import Form from '../models/Form.js';
 import Submission from '../models/Submission.js';
 import logger from '../utils/logger.js';
@@ -11,14 +11,14 @@ const router = express.Router();
 router.get('/config', (req, res) => {
   try {
     const legacyConfig = aiService.getProviderInfo();
-    const crewAIConfig = crewAIService.getServiceInfo();
+    const langChainConfig = langChainService.getServiceInfo();
     
     res.json({
       success: true,
       config: {
         legacy: legacyConfig,
-        crewAI: crewAIConfig,
-        activeService: crewAIService.isEnabled() ? 'CrewAI' : 'Legacy'
+        langChain: langChainConfig,
+        activeService: langChainService.isEnabled() ? 'LangChain' : 'Legacy'
       }
     });
   } catch (error) {
@@ -31,7 +31,7 @@ router.get('/config', (req, res) => {
   }
 });
 
-// Generate Form with AI (CrewAI Enhanced)
+// Generate Form with AI (LangChain Enhanced)
 router.post('/generate-form', async (req, res) => {
   try {
     const { 
@@ -51,14 +51,14 @@ router.post('/generate-form', async (req, res) => {
     let generatedForm;
     let service = 'legacy';
 
-    // Try CrewAI first if enabled and requested
-    if (useCrewAI && crewAIService.isEnabled()) {
+    // Try LangChain first if enabled and requested
+    if (useCrewAI && langChainService.isEnabled()) {
       try {
-        generatedForm = await crewAIService.generateForm(description, requirements);
-        service = 'CrewAI';
-        logger.info('Form generated using CrewAI', { description: description.substring(0, 50) });
+        generatedForm = await langChainService.generateForm(description, requirements);
+        service = 'LangChain';
+        logger.info('Form generated using LangChain', { description: description.substring(0, 50) });
       } catch (crewError) {
-        logger.logError(crewError, { context: 'CrewAI form generation fallback' });
+        logger.logError(crewError, { context: 'LangChain form generation fallback' });
         // Fall back to legacy service
         if (aiService.isEnabled()) {
           generatedForm = await aiService.generateFormFields(description, requirements);
@@ -103,7 +103,7 @@ router.post('/generate-form', async (req, res) => {
       metadata: {
         generatedAt: new Date().toISOString(),
         service: service,
-        provider: service === 'CrewAI' ? crewAIService.getServiceInfo().provider : aiService.aiProvider,
+        provider: service === 'LangChain' ? langChainService.getServiceInfo().provider : aiService.aiProvider,
         autoSaved: autoSave
       }
     });
@@ -463,7 +463,7 @@ router.post('/bulk-generate', async (req, res) => {
   }
 });
 
-// Chat endpoint for general conversation (CrewAI Enhanced)
+// Chat endpoint for general conversation (LangChain Enhanced)
 router.post('/chat', async (req, res) => {
   try {
     const { message, conversation_id, context = {}, useCrewAI = true } = req.body;
@@ -479,17 +479,17 @@ router.post('/chat', async (req, res) => {
     let service = 'fallback';
     const conversationId = conversation_id || `chat_${Date.now()}`;
 
-    // Try CrewAI first if enabled and requested
-    if (useCrewAI && crewAIService.isEnabled()) {
+    // Try LangChain first if enabled and requested
+    if (useCrewAI && langChainService.isEnabled()) {
       try {
-        const chatResponse = await crewAIService.handleChatMessage(
+        const chatResponse = await langChainService.handleChatMessage(
           message,
           conversationId,
           { ...context, language: 'Vietnamese' }
         );
         
         response = chatResponse.response;
-        service = 'CrewAI';
+        service = 'LangChain';
         
         return res.json({
           success: true,
@@ -499,7 +499,7 @@ router.post('/chat', async (req, res) => {
           metadata: chatResponse.context
         });
       } catch (crewError) {
-        logger.logError(crewError, { context: 'CrewAI chat fallback' });
+        logger.logError(crewError, { context: 'LangChain chat fallback' });
         // Fall through to legacy service
       }
     }
@@ -599,15 +599,15 @@ Bạn muốn tôi giúp gì khác?`;
   }
 });
 
-// CrewAI specific endpoints
+// LangChain specific endpoints
 
-// Form optimization with CrewAI
+// Form optimization with LangChain
 router.post('/optimize-form/:formId', async (req, res) => {
   try {
-    if (!crewAIService.isEnabled()) {
+    if (!langChainService.isEnabled()) {
       return res.status(503).json({
         success: false,
-        error: 'CrewAI service is not enabled'
+        error: 'LangChain service is not enabled'
       });
     }
 
@@ -622,7 +622,7 @@ router.post('/optimize-form/:formId', async (req, res) => {
       });
     }
 
-    const optimization = await crewAIService.optimizeForm(form.toObject(), goals);
+    const optimization = await langChainService.optimizeForm(form.toObject(), goals);
 
     res.json({
       success: true,
@@ -630,12 +630,12 @@ router.post('/optimize-form/:formId', async (req, res) => {
       originalForm: form,
       metadata: {
         optimizedAt: new Date().toISOString(),
-        service: 'CrewAI',
+        service: 'LangChain',
         goals
       }
     });
   } catch (error) {
-    logger.logError(error, { context: 'CrewAI form optimization' });
+    logger.logError(error, { context: 'LangChain form optimization' });
     res.status(500).json({
       success: false,
       error: 'Failed to optimize form',
@@ -644,13 +644,13 @@ router.post('/optimize-form/:formId', async (req, res) => {
   }
 });
 
-// Form validation with CrewAI
+// Form validation with LangChain
 router.post('/validate-form', async (req, res) => {
   try {
-    if (!crewAIService.isEnabled()) {
+    if (!langChainService.isEnabled()) {
       return res.status(503).json({
         success: false,
-        error: 'CrewAI service is not enabled'
+        error: 'LangChain service is not enabled'
       });
     }
 
@@ -663,18 +663,18 @@ router.post('/validate-form', async (req, res) => {
       });
     }
 
-    const validation = await crewAIService.validateForm(formData);
+    const validation = await langChainService.validateForm(formData);
 
     res.json({
       success: true,
       validation,
       metadata: {
         validatedAt: new Date().toISOString(),
-        service: 'CrewAI'
+        service: 'LangChain'
       }
     });
   } catch (error) {
-    logger.logError(error, { context: 'CrewAI form validation' });
+    logger.logError(error, { context: 'LangChain form validation' });
     res.status(500).json({
       success: false,
       error: 'Failed to validate form',
@@ -686,26 +686,26 @@ router.post('/validate-form', async (req, res) => {
 // Conversation analysis
 router.get('/chat/analyze/:conversationId', async (req, res) => {
   try {
-    if (!crewAIService.isEnabled()) {
+    if (!langChainService.isEnabled()) {
       return res.status(503).json({
         success: false,
-        error: 'CrewAI service is not enabled'
+        error: 'LangChain service is not enabled'
       });
     }
 
     const { conversationId } = req.params;
-    const analysis = await crewAIService.analyzeConversation(conversationId);
+    const analysis = await langChainService.analyzeConversation(conversationId);
 
     res.json({
       success: true,
       analysis,
       metadata: {
         analyzedAt: new Date().toISOString(),
-        service: 'CrewAI'
+        service: 'LangChain'
       }
     });
   } catch (error) {
-    logger.logError(error, { context: 'CrewAI conversation analysis' });
+    logger.logError(error, { context: 'LangChain conversation analysis' });
     res.status(500).json({
       success: false,
       error: 'Failed to analyze conversation',
@@ -717,13 +717,13 @@ router.get('/chat/analyze/:conversationId', async (req, res) => {
 // Service statistics
 router.get('/stats', (req, res) => {
   try {
-    const crewAIStats = crewAIService.isEnabled() ? crewAIService.getStatistics() : null;
+    const langChainStats = langChainService.isEnabled() ? langChainService.getStatistics() : null;
     const legacyInfo = aiService.getProviderInfo();
 
     res.json({
       success: true,
       statistics: {
-        crewAI: crewAIStats,
+        langChain: langChainStats,
         legacy: legacyInfo,
         timestamp: new Date().toISOString()
       }
@@ -741,8 +741,8 @@ router.get('/stats', (req, res) => {
 // Health check for AI services
 router.get('/health', async (req, res) => {
   try {
-    const crewAIHealth = crewAIService.isEnabled() ? 
-      await crewAIService.healthCheck() : 
+    const langChainHealth = langChainService.isEnabled() ? 
+      await langChainService.healthCheck() : 
       { status: 'disabled', reason: 'Service not enabled' };
     
     const legacyHealth = {
@@ -753,9 +753,9 @@ router.get('/health', async (req, res) => {
     res.json({
       success: true,
       health: {
-        crewAI: crewAIHealth,
+        langChain: langChainHealth,
         legacy: legacyHealth,
-        overall: crewAIHealth.status === 'healthy' || legacyHealth.status === 'healthy' ? 'healthy' : 'unhealthy',
+        overall: langChainHealth.status === 'healthy' || legacyHealth.status === 'healthy' ? 'healthy' : 'unhealthy',
         timestamp: new Date().toISOString()
       }
     });
