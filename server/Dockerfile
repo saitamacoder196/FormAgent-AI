@@ -20,6 +20,9 @@ COPY agents ./agents
 COPY utils ./utils
 COPY docs ./docs
 
+# Create logs directory and set permissions
+RUN mkdir -p /app/logs && chown -R node:node /app/logs
+
 # Run as node user (already exists in node:18 image)
 USER node
 
