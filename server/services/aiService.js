@@ -1,5 +1,5 @@
-// For now, disable the AI service to focus on WebSocket functionality
-const AI_DISABLED = true;
+// AI service can be disabled via environment variable
+const AI_DISABLED = process.env.AI_SERVICE_DISABLED === 'true';
 
 // Conditional imports to avoid module errors
 let OpenAIApi, AzureKeyCredential, OpenAI;
@@ -25,7 +25,7 @@ class AIService {
 
   initializeClient() {
     if (AI_DISABLED) {
-      console.log('AI Service disabled for WebSocket demo');
+      console.log('AI Service disabled via environment variable');
       return;
     }
     
