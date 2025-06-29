@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -16,6 +16,8 @@ COPY config ./config
 COPY models ./models
 COPY routes ./routes
 COPY services ./services
+COPY agents ./agents
+COPY utils ./utils
 COPY docs ./docs
 
 # Run as node user (already exists in node:18 image)
