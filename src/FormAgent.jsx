@@ -771,10 +771,11 @@ Bạn muốn tôi giúp gì? Hãy thử nói "tạo form đăng ký sự kiện"
             setFormData(fallbackForm);
             setFormValues({});
           }
-      } catch (localError) {
-        const fallbackForm = createFallbackForm(currentInput);
-        setFormData(fallbackForm);
-        setFormValues({});
+        } catch (localError) {
+          const fallbackForm = createFallbackForm(currentInput);
+          setFormData(fallbackForm);
+          setFormValues({});
+        }
       }
     } else {
       // Handle regular chat message
