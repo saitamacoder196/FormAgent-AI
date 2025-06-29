@@ -641,6 +641,62 @@ const FormAgent = () => {
     );
   };
 
+  const isFormRequest = (input) => {
+    const lowerInput = input.toLowerCase();
+    const formKeywords = [
+      'tạo form', 'tạo biểu mẫu', 'form', 'biểu mẫu', 'survey', 'khảo sát',
+      'đăng ký', 'registration', 'đơn', 'application', 'feedback', 'phản hồi',
+      'thu thập thông tin', 'collect information', 'questionnaire'
+    ];
+    return formKeywords.some(keyword => lowerInput.includes(keyword));
+  };
+
+  const handleChatMessage = async (message) => {
+    try {
+      // Call chat API endpoint
+      const response = await fetch('http://localhost:5000/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          conversation_id: clientId
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        const botResponse = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: result.response
+        };
+        setMessages(prev => [...prev, botResponse]);
+      } else {
+        throw new Error(result.error || 'Chat API call failed');
+      }
+    } catch (error) {
+      console.error('Chat API error:', error);
+      
+      // Fallback response
+      const fallbackResponse = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: `Tôi là FormAgent AI, trợ lý tạo form thông minh! 🤖
+
+Tôi có thể giúp bạn:
+📝 Tạo các loại form: đăng ký, khảo sát, phản hồi, thu thập thông tin
+💬 Trò chuyện và tư vấn về thiết kế form
+🔧 Cấu hình các tính năng form nâng cao
+
+Bạn muốn tôi giúp gì? Hãy thử nói "tạo form đăng ký sự kiện" hoặc hỏi bất kỳ điều gì!`
+      };
+      setMessages(prev => [...prev, fallbackResponse]);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -655,52 +711,54 @@ const FormAgent = () => {
     setInputValue('');
     setIsLoading(true);
 
-    try {
-      // Call new API endpoint
-      const response = await fetch('http://localhost:5000/api/process-form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: currentInput,
-          clientId: clientId
-        }),
-      });
+    // Check if this is a form creation request
+    if (isFormRequest(currentInput)) {
+      try {
+        // Call form creation API endpoint
+        const response = await fetch('http://localhost:5000/api/process-form', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: currentInput,
+            clientId: clientId
+          }),
+        });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        // Show processing message
-        const processingResponse = {
+        const result = await response.json();
+        
+        if (result.success) {
+          // Show processing message
+          const processingResponse = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: '🔄 Đang xử lý yêu cầu tạo form qua WebSocket server... Vui lòng chờ!'
+          };
+          setMessages(prev => [...prev, processingResponse]);
+          
+          // The actual form will be received via WebSocket
+        } else {
+          throw new Error(result.error || 'API call failed');
+        }
+      } catch (error) {
+        console.error('Form API call error:', error);
+        setIsLoading(false);
+        
+        const errorResponse = {
           id: Date.now() + 1,
           type: 'bot',
-          content: '🔄 Đang xử lý yêu cầu của bạn qua WebSocket server... Vui lòng chờ!'
+          content: '❌ Không thể kết nối đến server. Tạo form với dữ liệu mẫu...'
         };
-        setMessages(prev => [...prev, processingResponse]);
+        setMessages(prev => [...prev, errorResponse]);
         
-        // The actual form will be received via WebSocket
-      } else {
-        throw new Error(result.error || 'API call failed');
-      }
-    } catch (error) {
-      console.error('API call error:', error);
-      setIsLoading(false);
-      
-      const errorResponse = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: '❌ Không thể kết nối đến server. Sử dụng xử lý local...'
-      };
-      setMessages(prev => [...prev, errorResponse]);
-      
-      // Fallback to local processing
-      try {
-        const generatedForm = await generateForm(currentInput);
-        
-        if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
-          setFormData(generatedForm);
-          setFormValues({});
+        // Fallback to local processing
+        try {
+          const generatedForm = await generateForm(currentInput);
+          
+          if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
+            setFormData(generatedForm);
+            setFormValues({});
           
           const botResponse = {
             id: Date.now() + 2,
@@ -718,7 +776,12 @@ const FormAgent = () => {
         setFormData(fallbackForm);
         setFormValues({});
       }
+    } else {
+      // Handle regular chat message
+      await handleChatMessage(currentInput);
     }
+    
+    setIsLoading(false);
   };
 
   const handleInputChange = (fieldId, value) => {

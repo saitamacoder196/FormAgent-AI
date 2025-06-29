@@ -432,4 +432,107 @@ router.post('/bulk-generate', async (req, res) => {
   }
 });
 
+// Chat endpoint for general conversation
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, conversation_id } = req.body;
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required'
+      });
+    }
+
+    // If AI service is available, use it
+    if (aiService.isEnabled()) {
+      try {
+        const response = await aiService.generateCompletion(`
+Bạn là FormAgent AI, một trợ lý thông minh chuyên tạo form và trò chuyện thân thiện.
+
+Nhiệm vụ của bạn:
+1. Trả lời các câu hỏi thông thường một cách tự nhiên và thân thiện
+2. Tư vấn về thiết kế form khi được hỏi
+3. Giải thích các tính năng của FormAgent
+4. Nếu người dùng muốn tạo form, hướng dẫn họ sử dụng từ khóa như "tạo form", "tạo biểu mẫu"
+
+Tin nhắn của người dùng: "${message}"
+
+Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
+
+        return res.json({
+          success: true,
+          response: response,
+          conversation_id: conversation_id || 'default'
+        });
+      } catch (aiError) {
+        console.error('AI service error:', aiError);
+        // Fall through to default response
+      }
+    }
+
+    // Default responses for common questions
+    const lowerMessage = message.toLowerCase();
+    let response = '';
+
+    if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+      response = `Xin chào! Tôi là FormAgent AI 🤖
+
+Tôi có thể giúp bạn:
+📝 Tạo form đăng ký, khảo sát, phản hồi
+💬 Trò chuyện và tư vấn
+🔧 Thiết kế form chuyên nghiệp
+
+Bạn muốn làm gì hôm nay?`;
+    } else if (lowerMessage.includes('làm gì') || lowerMessage.includes('giúp gì')) {
+      response = `Tôi có thể giúp bạn:
+
+🚀 **Tạo form nhanh chóng:**
+- "Tạo form đăng ký sự kiện"
+- "Tạo khảo sát khách hàng"
+- "Tạo form phản hồi"
+
+💡 **Tư vấn thiết kế:**
+- Cách thiết kế form hiệu quả
+- Loại trường nào phù hợp
+- Cấu hình email và API
+
+🔧 **Hỗ trợ kỹ thuật:**
+- Cách sử dụng FormAgent
+- Troubleshooting
+
+Bạn muốn thử tạo form không?`;
+    } else if (lowerMessage.includes('cảm ơn') || lowerMessage.includes('thank')) {
+      response = 'Rất vui được giúp bạn! 😊 Nếu cần hỗ trợ thêm, hãy nói với tôi nhé!';
+    } else if (lowerMessage.includes('bye') || lowerMessage.includes('tạm biệt')) {
+      response = 'Tạm biệt! Hẹn gặp lại bạn soon! 👋';
+    } else {
+      response = `Tôi hiểu bạn đang hỏi về: "${message}"
+
+Tôi là FormAgent AI, chuyên gia về tạo form! 🎯
+
+Một số gợi ý:
+• Hỏi "làm thế nào để tạo form hiệu quả?"
+• Thử nói "tạo form đăng ký workshop"
+• Hoặc hỏi bất cứ điều gì về form và thiết kế!
+
+Bạn muốn tôi giúp gì khác?`;
+    }
+
+    res.json({
+      success: true,
+      response: response,
+      conversation_id: conversation_id || 'default'
+    });
+
+  } catch (error) {
+    console.error('Chat endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process chat message',
+      message: error.message
+    });
+  }
+});
+
 export default router;
