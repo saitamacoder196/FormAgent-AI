@@ -18,13 +18,8 @@ COPY routes ./routes
 COPY services ./services
 COPY docs ./docs
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Run as node user (already exists in node:18 image)
+USER node
 
 # Expose port
 EXPOSE 5000
