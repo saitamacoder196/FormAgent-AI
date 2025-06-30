@@ -764,8 +764,20 @@ Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều g
         });
 
         const result = await response.json();
+        console.log('Generate form API response:', result); // Debug log
+        
+        // Validate response structure
+        if (!result || typeof result !== 'object') {
+          throw new Error('Invalid response format');
+        }
         
         if (result.success && result.generatedForm) {
+          // Validate generatedForm structure
+          if (!result.generatedForm.fields || !Array.isArray(result.generatedForm.fields)) {
+            throw new Error('Invalid form structure: missing fields array');
+          }
+          setIsLoading(false); // Add this line
+          
           // Set the generated form data
           const generatedForm = result.generatedForm;
           setFormData(generatedForm);
