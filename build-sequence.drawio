@@ -80,23 +80,26 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="comm-details" value="Communication Types:&#xa;• HTTP/REST: Form data, AI requests&#xa;• WebSocket: Real-time updates, form processing status&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="50" y="710" width="380" height="80" as="geometry"/>
+                <mxCell id="comm-details" value="Communication Types:&#xa;• WebSocket (Primary): Real-time form generation, chat, typing indicators&#xa;• HTTP/REST (Fallback): Form data, AI requests when WebSocket unavailable&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)&#xa;• Template System: Fallback when all AI services fail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="710" width="380" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="build-order" value="Docker Compose Build Order:&#xa;1. MongoDB (with health check)&#xa;2. Mongo Express (depends on MongoDB)&#xa;3. Backend (depends on MongoDB)&#xa;4. Frontend (depends on Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="450" y="710" width="280" height="80" as="geometry"/>
+                    <mxGeometry x="450" y="720" width="280" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="docker-cmds" value="Docker Commands:&#xa;• docker-compose up -d&#xa;• docker-compose down&#xa;• docker-compose logs -f [service]&#xa;• docker-compose ps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="750" y="710" width="220" height="80" as="geometry"/>
+                    <mxGeometry x="750" y="720" width="220" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="ws-details" value="WebSocket Events:&#xa;• form:processing&#xa;• form:completed&#xa;• form:error&#xa;• ai:generating" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="720" y="320" width="120" height="70" as="geometry"/>
+                <mxCell id="ws-details" value="WebSocket Events:&#xa;• generate-form&#xa;• form-generation-started&#xa;• form-generated&#xa;• form-generation-error&#xa;• chat-message&#xa;• chat-typing&#xa;• chat-response&#xa;• chat-error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="300" width="150" height="120" as="geometry"/>
                 </mxCell>
                 <mxCell id="api-endpoints" value="API Endpoints:&#xa;/api/forms&#xa;/api/submissions&#xa;/api/ai/generate-form&#xa;/api/health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
                     <mxGeometry x="380" y="320" width="120" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="volumes" value="Docker Volumes:&#xa;• mongodb_data&#xa;• mongodb_config&#xa;• node_modules (backend)&#xa;• node_modules (frontend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
                     <mxGeometry x="50" y="560" width="150" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fallback-flow" value="Fallback Architecture:&#xa;1. WebSocket → HTTP API&#xa;2. LangChain → Legacy AI&#xa;3. Azure OpenAI → OpenAI&#xa;4. AI Services → Template System&#xa;5. Real-time → Standard Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0e6;strokeColor=#ff9900;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="450" width="180" height="100" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
