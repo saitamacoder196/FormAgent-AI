@@ -1071,7 +1071,7 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
         }
       };
 
-      const response = await fetch(`/api/forms-enhanced/${formId}/submit`, {
+      const response = await fetch(`http://localhost:5001/api/forms-enhanced/${formId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1117,7 +1117,10 @@ Cảm ơn bạn đã sử dụng FormAgent! 🙏`;
       const formPayload = {
         title: formData.title,
         description: formData.description,
-        fields: formData.fields,
+        fields: formData.fields.map(field => ({
+          ...field,
+          name: field.name || field.id // Ensure name field exists
+        })),
         settings: {
           theme: 'default',
           submitMessage: 'Cảm ơn bạn đã gửi thông tin!',
@@ -1132,7 +1135,7 @@ Cảm ơn bạn đã sử dụng FormAgent! 🙏`;
         userId: 'anonymous' // Could be replaced with actual user ID
       };
 
-      const response = await fetch('/api/forms-enhanced/save', {
+      const response = await fetch('http://localhost:5001/api/forms-enhanced/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
