@@ -62,6 +62,205 @@ io.on('connection', (socket) => {
     socket.join(room);
     console.log(`🏠 Client ${socket.id} joined room: ${room}`);
   });
+
+  // Handle form generation via WebSocket
+  socket.on('generate-form', async (data) => {
+    try {
+      console.log(`📝 Form generation request from ${socket.id}:`, data);
+      
+      // Send immediate acknowledgment
+      socket.emit('form-generation-started', {
+        success: true,
+        message: 'Đang tạo form...',
+        timestamp: new Date().toISOString()
+      });
+
+      // Import the generate-form logic from aiRoutes
+      const { description, requirements = {}, autoSave = false, useCrewAI = true } = data;
+      
+      // Import AI services
+      const aiService = (await import('./services/aiService.js')).default;
+      const enhancedAgentService = (await import('./services/crewAIService.js')).default;
+      
+      let generatedForm;
+      let service = 'fallback-template';
+
+      // Try Enhanced service first
+      if (useCrewAI && enhancedAgentService.isEnabled()) {
+        try {
+          generatedForm = await enhancedAgentService.generateForm(description, requirements);
+          service = 'LangChain';
+        } catch (crewError) {
+          console.error('LangChain form generation error:', crewError);
+          // Fall back to legacy service
+          if (aiService.isEnabled()) {
+            try {
+              generatedForm = await aiService.generateFormFields(description, requirements);
+              service = 'legacy-fallback';
+            } catch (legacyError) {
+              console.error('Legacy AI service error:', legacyError);
+              // Use fallback template
+              const { generateDefaultForm } = await import('./utils/formTemplates.js');
+              generatedForm = generateDefaultForm(description, requirements);
+              service = 'fallback-template';
+            }
+          } else {
+            // Use fallback template
+            const generateDefaultForm = (await import('./utils/formTemplates.js')).generateDefaultForm;
+            generatedForm = generateDefaultForm(description, requirements);
+            service = 'fallback-template';
+          }
+        }
+      } else if (aiService.isEnabled()) {
+        try {
+          generatedForm = await aiService.generateFormFields(description, requirements);
+          service = 'legacy';
+        } catch (legacyError) {
+          console.error('Legacy AI service main error:', legacyError);
+          // Use fallback template
+          const generateDefaultForm = (await import('./utils/formTemplates.js')).generateDefaultForm;
+          generatedForm = generateDefaultForm(description, requirements);
+          service = 'fallback-template';
+        }
+      } else {
+        // Use fallback template
+        const generateDefaultForm = (await import('./utils/formTemplates.js')).generateDefaultForm;
+        generatedForm = generateDefaultForm(description, requirements);
+        service = 'fallback-template';
+      }
+
+      // Send successful result
+      socket.emit('form-generated', {
+        success: true,
+        generatedForm,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          service: service,
+          provider: service === 'LangChain' ? 'azure' : 'template',
+          autoSaved: false
+        }
+      });
+
+    } catch (error) {
+      console.error('WebSocket form generation error:', error);
+      socket.emit('form-generation-error', {
+        success: false,
+        error: 'Failed to generate form',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Handle chat via WebSocket
+  socket.on('chat-message', async (data) => {
+    try {
+      console.log(`💬 Chat message from ${socket.id}:`, data);
+      
+      const { message, conversation_id, context = {}, useCrewAI = true } = data;
+      
+      // Send typing indicator
+      socket.emit('chat-typing', {
+        typing: true,
+        timestamp: new Date().toISOString()
+      });
+
+      // Import AI services
+      const aiService = (await import('./services/aiService.js')).default;
+      const enhancedAgentService = (await import('./services/crewAIService.js')).default;
+      
+      let response;
+      let service = 'fallback';
+      const conversationId = conversation_id || `chat_${Date.now()}`;
+
+      // Try LangChain first if enabled and requested
+      if (useCrewAI && enhancedAgentService.isEnabled()) {
+        try {
+          const chatResponse = await enhancedAgentService.handleChatMessage(
+            message,
+            conversationId,
+            { ...context, language: 'Vietnamese' }
+          );
+          
+          response = chatResponse.response;
+          service = 'LangChain';
+        } catch (crewError) {
+          console.error('LangChain chat error:', crewError);
+          // Fall through to legacy service
+        }
+      }
+
+      // Try legacy AI service if LangChain failed
+      if (!response && aiService.isEnabled()) {
+        try {
+          response = await aiService.generateCompletion(`
+Bạn là FormAgent AI, một trợ lý thông minh chuyên tạo form và trò chuyện thân thiện.
+
+Nhiệm vụ của bạn:
+1. Trả lời các câu hỏi thông thường một cách tự nhiên và thân thiện
+2. Tư vấn về thiết kế form khi được hỏi
+3. Giải thích các tính năng của FormAgent
+4. Nếu người dùng muốn tạo form, hướng dẫn họ sử dụng từ khóa như "tạo form", "tạo biểu mẫu"
+
+Tin nhắn của người dùng: "${message}"
+
+Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
+
+          service = 'legacy';
+        } catch (aiError) {
+          console.error('Legacy AI chat error:', aiError);
+          // Fall through to default response
+        }
+      }
+
+      // Default responses for common questions
+      if (!response) {
+        const lowerMessage = message.toLowerCase();
+        if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+          response = `Xin chào! Tôi là FormAgent AI 🤖
+
+Tôi có thể giúp bạn:
+📝 Tạo form đăng ký, khảo sát, phản hồi
+💬 Trò chuyện và tư vấn
+🔧 Thiết kế form chuyên nghiệp
+
+Bạn muốn làm gì hôm nay?`;
+        } else {
+          response = `Tôi hiểu bạn đang hỏi về: "${message}"
+
+Tôi là FormAgent AI, chuyên gia về tạo form! 🎯
+
+Một số gợi ý:
+• Hỏi "làm thế nào để tạo form hiệu quả?"
+• Thử nói "tạo form đăng ký workshop"
+• Hoặc hỏi bất cứ điều gì về form và thiết kế!
+
+Bạn muốn tôi giúp gì khác?`;
+        }
+        service = 'fallback';
+      }
+
+      // Stop typing and send response
+      socket.emit('chat-typing', { typing: false });
+      socket.emit('chat-response', {
+        success: true,
+        response: response,
+        conversation_id: conversationId,
+        service: service,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('WebSocket chat error:', error);
+      socket.emit('chat-typing', { typing: false });
+      socket.emit('chat-error', {
+        success: false,
+        error: 'Failed to process chat message',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 });
 
 // Form processing service with AI analysis

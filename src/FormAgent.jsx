@@ -318,6 +318,130 @@ const FormAgent = () => {
       console.error('WebSocket connection error:', error);
     });
 
+    // Handle form generation WebSocket events
+    newSocket.on('form-generation-started', (data) => {
+      console.log('Form generation started:', data);
+      setIsLoading(true);
+      
+      const startMessage = {
+        id: Date.now(),
+        type: 'bot',
+        content: '🔄 ' + data.message
+      };
+      setMessages(prev => [...prev, startMessage]);
+    });
+
+    newSocket.on('form-generated', (data) => {
+      console.log('Form generated via WebSocket:', data);
+      setIsLoading(false);
+      
+      if (data.success && data.generatedForm) {
+        // Validate generatedForm structure
+        if (!data.generatedForm.fields || !Array.isArray(data.generatedForm.fields)) {
+          console.error('Invalid form structure from WebSocket');
+          return;
+        }
+        
+        // Set the generated form data (merge with existing structure)
+        const generatedForm = data.generatedForm;
+        setFormData(prevData => ({
+          ...prevData,
+          title: generatedForm.title || prevData.title,
+          description: generatedForm.description || prevData.description,
+          fields: generatedForm.fields || prevData.fields
+        }));
+        setFormValues({});
+        
+        // Show success message with service info
+        const serviceInfo = data.metadata?.service || 'AI';
+        const successResponse = {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: `✅ Đã tạo thành công form "${generatedForm.title}" với ${generatedForm.fields?.length || 0} trường thông tin!
+
+🤖 **Powered by:** ${serviceInfo} (WebSocket)
+📝 **Mô tả:** ${generatedForm.description}
+⚙️ **Tính năng:** Validation thông minh, responsive design
+
+Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc hỏi tôi thêm về cách tối ưu hóa form!`,
+          service: serviceInfo
+        };
+        setMessages(prev => [...prev, successResponse]);
+      }
+    });
+
+    newSocket.on('form-generation-error', (data) => {
+      console.error('Form generation error via WebSocket:', data);
+      setIsLoading(false);
+      
+      const errorResponse = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: '❌ Lỗi tạo form qua WebSocket: ' + (data.message || data.error)
+      };
+      setMessages(prev => [...prev, errorResponse]);
+      
+      // Fallback to local processing
+      const fallbackForm = createFallbackForm('form cơ bản');
+      setFormData(prevData => ({
+        ...prevData,
+        title: fallbackForm.title || prevData.title,
+        description: fallbackForm.description || prevData.description,
+        fields: fallbackForm.fields || prevData.fields
+      }));
+    });
+
+    // Handle chat WebSocket events
+    newSocket.on('chat-typing', (data) => {
+      if (data.typing) {
+        const typingMessage = {
+          id: 'typing',
+          type: 'bot',
+          content: '⌨️ Đang nhập...'
+        };
+        setMessages(prev => [...prev.filter(msg => msg.id !== 'typing'), typingMessage]);
+      } else {
+        setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      }
+    });
+
+    newSocket.on('chat-response', (data) => {
+      console.log('Chat response via WebSocket:', data);
+      setIsLoading(false);
+      
+      // Remove typing indicator
+      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      
+      if (data.success) {
+        const botResponse = {
+          id: Date.now(),
+          type: 'bot',
+          content: data.response + `\n\n*Via WebSocket (${data.service})*`,
+          service: data.service
+        };
+        setMessages(prev => [...prev, botResponse]);
+      }
+    });
+
+    newSocket.on('chat-error', (data) => {
+      console.error('Chat error via WebSocket:', data);
+      setIsLoading(false);
+      
+      // Remove typing indicator
+      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      
+      const errorResponse = {
+        id: Date.now(),
+        type: 'bot',
+        content: '❌ Lỗi chat qua WebSocket: ' + (data.message || data.error)
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('WebSocket connection error:', error);
+    });
+
     return () => {
       newSocket.close();
     };
@@ -752,26 +876,44 @@ Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều g
 
     // Check if this is a form creation request
     if (isFormRequest(currentInput)) {
-      try {
-        // Call CrewAI-enhanced form generation API endpoint
-        const response = await fetch('http://localhost:5000/api/ai/generate-form', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      // Use WebSocket for form generation instead of API call
+      if (socket && socket.connected) {
+        socket.emit('generate-form', {
+          description: currentInput,
+          requirements: {
+            fieldCount: 5,
+            includeValidation: true,
+            formType: 'dynamic',
+            targetAudience: 'general',
+            language: 'Vietnamese'
           },
-          body: JSON.stringify({
-            description: currentInput,
-            requirements: {
-              fieldCount: 5,
-              includeValidation: true,
-              formType: 'dynamic',
-              targetAudience: 'general',
-              language: 'Vietnamese'
-            },
-            autoSave: false,
-            useCrewAI: true
-          }),
+          autoSave: false,
+          useCrewAI: true
         });
+        
+        // The response will be handled by WebSocket event listeners
+        return;
+      } else {
+        // Fallback to API if WebSocket not connected
+        try {
+          const response = await fetch('http://localhost:5000/api/ai/generate-form', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              description: currentInput,
+              requirements: {
+                fieldCount: 5,
+                includeValidation: true,
+                formType: 'dynamic',
+                targetAudience: 'general',
+                language: 'Vietnamese'
+              },
+              autoSave: false,
+              useCrewAI: true
+            }),
+          });
 
         const result = await response.json();
         console.log('Generate form API response:', result); // Debug log
@@ -868,8 +1010,21 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
         }
       }
     } else {
-      // Handle regular chat message
-      await handleChatMessage(currentInput);
+      // Handle regular chat message via WebSocket
+      if (socket && socket.connected) {
+        socket.emit('chat-message', {
+          message: currentInput,
+          conversation_id: `chat_${Date.now()}`,
+          context: { language: 'Vietnamese' },
+          useCrewAI: true
+        });
+        
+        // The response will be handled by WebSocket event listeners
+        return;
+      } else {
+        // Fallback to API if WebSocket not connected
+        await handleChatMessage(currentInput);
+      }
     }
     
     setIsLoading(false);
