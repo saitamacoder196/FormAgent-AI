@@ -12,12 +12,14 @@
     "format": "prettier --write src/**/*.{js,jsx,ts,tsx,css,md}"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.0.0",
+    "@azure/core-auth": "^1.9.0",
+    "@azure/openai": "^2.0.0",
+    "antd": "^5.0.0",
+    "dayjs": "^1.11.13",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.294.0",
-    "antd": "^5.0.0",
-    "@ant-design/icons": "^5.0.0",
-    "dayjs": "^1.11.13",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
@@ -34,7 +36,12 @@
     "tailwindcss": "^3.3.6",
     "vite": "^5.0.8"
   },
-  "keywords": ["react", "form-builder", "ai", "tailwind"],
+  "keywords": [
+    "react",
+    "form-builder",
+    "ai",
+    "tailwind"
+  ],
   "author": "",
   "license": "MIT"
 }

@@ -2,16 +2,14 @@
 const AI_DISABLED = process.env.AI_SERVICE_DISABLED === 'true';
 
 // Conditional imports to avoid module errors
-let OpenAIApi, AzureKeyCredential, OpenAI;
+let AzureOpenAI, OpenAI;
 
 if (!AI_DISABLED) {
   try {
-    const azureModule = await import('@azure/openai');
-    OpenAIApi = azureModule.OpenAIApi;
-    const coreAuth = await import('@azure/core-auth');
-    AzureKeyCredential = coreAuth.AzureKeyCredential;
+    // For Azure OpenAI, we use the openai package with Azure configuration
     const openaiModule = await import('openai');
     OpenAI = openaiModule.default;
+    AzureOpenAI = openaiModule.AzureOpenAI;
   } catch (error) {
     console.warn('AI modules not available:', error.message);
   }
@@ -35,11 +33,11 @@ class AIService {
         return;
       }
 
-      this.client = new OpenAIApi(
-        process.env.AZURE_OPENAI_ENDPOINT,
-        new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY),
-        process.env.AZURE_OPENAI_API_VERSION
-      );
+      this.client = new AzureOpenAI({
+        apiKey: process.env.AZURE_OPENAI_API_KEY,
+        endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+        apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      });
       
       this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
       this.maxTokens = parseInt(process.env.AZURE_OPENAI_MAX_TOKENS) || 2000;
@@ -176,14 +174,12 @@ class AIService {
     const tokens = maxTokens || this.maxTokens;
 
     if (this.aiProvider === 'azure') {
-      const response = await this.client.getChatCompletions(
-        this.deploymentName,
-        [{ role: 'user', content: prompt }],
-        {
-          maxTokens: tokens,
-          temperature: this.temperature
-        }
-      );
+      const response = await this.client.chat.completions.create({
+        model: this.deploymentName,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: tokens,
+        temperature: this.temperature
+      });
 
       return response.choices[0]?.message?.content || '';
     } else if (this.aiProvider === 'openai') {
@@ -360,4 +356,24 @@ Format as structured insights with priorities.`;
   }
 }
 
-export default new AIService();
+// Export singleton instance with lazy initialization
+let instance = null;
+
+const getAIService = () => {
+  if (!instance) {
+    instance = new AIService();
+  }
+  return instance;
+};
+
+export default {
+  isEnabled: () => getAIService().isEnabled(),
+  generateFormFields: (description, requirements) => getAIService().generateFormFields(description, requirements),
+  generateFormTitle: (description, tone) => getAIService().generateFormTitle(description, tone),
+  generateFormDescription: (title, purpose) => getAIService().generateFormDescription(title, purpose),
+  analyzeFormSubmissions: (submissions, analysisType) => getAIService().analyzeFormSubmissions(submissions, analysisType),
+  moderateContent: (content) => getAIService().moderateContent(content),
+  generateCompletion: (prompt, maxTokens) => getAIService().generateCompletion(prompt, maxTokens),
+  getProviderInfo: () => getAIService().getProviderInfo(),
+  get aiProvider() { return getAIService().aiProvider; }
+};

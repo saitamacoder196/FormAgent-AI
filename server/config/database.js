@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
+    if (!process.env.MONGODB_URI) {
+      console.log('⚠️  MongoDB URI not configured - running without database');
+      return;
+    }
+
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -26,7 +31,7 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error('Database connection failed:', error.message);
-    process.exit(1);
+    console.log('⚠️  Continuing without database connection');
   }
 };
 

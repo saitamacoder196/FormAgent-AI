@@ -355,5 +355,24 @@ class EnhancedAgentService {
   }
 }
 
-// Export singleton instance
-export default new EnhancedAgentService();
+// Export singleton instance with lazy initialization
+let instance = null;
+
+const getEnhancedAgentService = () => {
+  if (!instance) {
+    instance = new EnhancedAgentService();
+  }
+  return instance;
+};
+
+export default {
+  isEnabled: () => getEnhancedAgentService().isEnabled(),
+  generateForm: (description, requirements) => getEnhancedAgentService().generateForm(description, requirements),
+  handleChatMessage: (message, conversationId, context) => getEnhancedAgentService().handleChatMessage(message, conversationId, context),
+  optimizeForm: (existingForm, goals) => getEnhancedAgentService().optimizeForm(existingForm, goals),
+  validateForm: (formData) => getEnhancedAgentService().validateForm(formData),
+  analyzeConversation: (conversationId) => getEnhancedAgentService().analyzeConversation(conversationId),
+  getServiceInfo: () => getEnhancedAgentService().getServiceInfo(),
+  getStatistics: () => getEnhancedAgentService().getStatistics(),
+  healthCheck: () => getEnhancedAgentService().healthCheck()
+};
