@@ -276,7 +276,12 @@ const FormAgent = () => {
       setIsLoading(false);
       
       if (data.success) {
-        setFormData(data.form);
+        setFormData(prevData => ({
+          ...prevData,
+          title: data.form.title || prevData.title,
+          description: data.form.description || prevData.description,
+          fields: data.form.fields || prevData.fields
+        }));
         setFormValues({});
         
         const botResponse = {
@@ -295,7 +300,12 @@ const FormAgent = () => {
         
         // Fallback to local processing
         const fallbackForm = createFallbackForm(data.prompt || 'form cơ bản');
-        setFormData(fallbackForm);
+        setFormData(prevData => ({
+          ...prevData,
+          title: fallbackForm.title || prevData.title,
+          description: fallbackForm.description || prevData.description,
+          fields: fallbackForm.fields || prevData.fields
+        }));
         setFormValues({});
       }
     });
@@ -778,9 +788,14 @@ Bạn muốn bắt đầu từ đâu? Hãy thử hỏi tôi bất cứ điều g
           }
           setIsLoading(false); // Add this line
           
-          // Set the generated form data
+          // Set the generated form data (merge with existing structure)
           const generatedForm = result.generatedForm;
-          setFormData(generatedForm);
+          setFormData(prevData => ({
+            ...prevData,
+            title: generatedForm.title || prevData.title,
+            description: generatedForm.description || prevData.description,
+            fields: generatedForm.fields || prevData.fields
+          }));
           setFormValues({});
           
           // Show success message with service info
@@ -817,7 +832,12 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
           const generatedForm = await generateForm(currentInput);
           
           if (generatedForm && generatedForm.fields && generatedForm.fields.length > 0) {
-            setFormData(generatedForm);
+            setFormData(prevData => ({
+              ...prevData,
+              title: generatedForm.title || prevData.title,
+              description: generatedForm.description || prevData.description,
+              fields: generatedForm.fields || prevData.fields
+            }));
             setFormValues({});
             
             const botResponse = {
@@ -828,12 +848,22 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
             setMessages(prev => [...prev, botResponse]);
           } else {
             const fallbackForm = createFallbackForm(currentInput);
-            setFormData(fallbackForm);
+            setFormData(prevData => ({
+              ...prevData,
+              title: fallbackForm.title || prevData.title,
+              description: fallbackForm.description || prevData.description,
+              fields: fallbackForm.fields || prevData.fields
+            }));
             setFormValues({});
           }
         } catch (localError) {
           const fallbackForm = createFallbackForm(currentInput);
-          setFormData(fallbackForm);
+          setFormData(prevData => ({
+            ...prevData,
+            title: fallbackForm.title || prevData.title,
+            description: fallbackForm.description || prevData.description,
+            fields: fallbackForm.fields || prevData.fields
+          }));
           setFormValues({});
         }
       }
