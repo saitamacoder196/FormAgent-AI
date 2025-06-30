@@ -80,14 +80,17 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="comm-details" value="Communication Types:&#xa;• WebSocket (Primary): Real-time form generation, chat, typing indicators&#xa;• HTTP/REST (Fallback): Form data, AI requests when WebSocket unavailable&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)&#xa;• Template System: Fallback when all AI services fail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="50" y="710" width="380" height="90" as="geometry"/>
+                <mxCell id="comm-details" value="Communication Types:&#xa;• WebSocket (Primary): Real-time form generation, chat, typing indicators&#xa;• HTTP/REST (Fallback): Form data, AI requests when WebSocket unavailable&#xa;• MongoDB Protocol: Database operations, conversation history&#xa;• External HTTPS: AI API calls (OpenAI/Azure)&#xa;• Template System: Fallback when all AI services fail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="590" width="380" height="100" as="geometry"/>
                 </mxCell>
                 <mxCell id="build-order" value="Docker Compose Build Order:&#xa;1. MongoDB (with health check)&#xa;2. Mongo Express (depends on MongoDB)&#xa;3. Backend (depends on MongoDB)&#xa;4. Frontend (depends on Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="450" y="720" width="280" height="80" as="geometry"/>
+                    <mxGeometry x="450" y="590" width="280" height="100" as="geometry"/>
                 </mxCell>
                 <mxCell id="docker-cmds" value="Docker Commands:&#xa;• docker-compose up -d&#xa;• docker-compose down&#xa;• docker-compose logs -f [service]&#xa;• docker-compose ps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
-                    <mxGeometry x="750" y="720" width="220" height="80" as="geometry"/>
+                    <mxGeometry x="750" y="590" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="tech-stack" value="Technology Stack:&#xa;• Frontend: React + Vite + Ant Design&#xa;• Backend: Node.js + Express + Socket.io&#xa;• Database: MongoDB + Mongoose&#xa;• AI: OpenAI + Azure OpenAI&#xa;• Security: Helmet + Rate Limiting&#xa;• Monitoring: Winston + Morgan&#xa;• Containerization: Docker + Compose&#xa;• Architecture: Microservices + WebSocket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6ffed;strokeColor=#52c41a;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="700" width="920" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="ws-details" value="WebSocket Events:&#xa;• generate-form&#xa;• form-generation-started&#xa;• form-generated&#xa;• form-generation-error&#xa;• chat-message&#xa;• chat-typing&#xa;• chat-response&#xa;• chat-error" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
                     <mxGeometry x="720" y="300" width="150" height="120" as="geometry"/>
@@ -100,6 +103,15 @@
                 </mxCell>
                 <mxCell id="fallback-flow" value="Fallback Architecture:&#xa;1. WebSocket → HTTP API&#xa;2. LangChain → Legacy AI&#xa;3. Azure OpenAI → OpenAI&#xa;4. AI Services → Template System&#xa;5. Real-time → Standard Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0e6;strokeColor=#ff9900;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
                     <mxGeometry x="50" y="450" width="180" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="new-features" value="New Features:&#xa;• Personal & Guidelines Config&#xa;• Guardrails System&#xa;• Conversation History (Long/Short)&#xa;• Persistent Context Management&#xa;• Database Form Saving&#xa;• Enhanced Form Templates&#xa;• Safety Content Validation&#xa;• User Preference Learning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f7ff;strokeColor=#1890ff;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="450" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="context-mgmt" value="Context Management:&#xa;• In-memory active conversations&#xa;• MongoDB persistent storage&#xa;• Short-term memory (20 messages)&#xa;• Long-term summary & preferences&#xa;• User type classification&#xa;• Topic extraction & frequency&#xa;• Auto-archival after 30 days&#xa;• Conversation quality analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f5ff;strokeColor=#722ed1;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="450" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="guardrails" value="Guardrails & Safety:&#xa;• Content safety checking&#xa;• Form design validation&#xa;• Forbidden field detection&#xa;• GDPR compliance warnings&#xa;• Response quality improvement&#xa;• Violation logging & monitoring&#xa;• User intent classification&#xa;• Sensitive data protection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff1f0;strokeColor=#ff4d4f;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="450" width="200" height="130" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

@@ -1038,35 +1038,141 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
     }));
   };
 
-  const handleSubmitForm = () => {
-    const requiredFields = formData.fields.filter(field => field.required);
-    const missingFields = requiredFields.filter(field => !formValues[field.id]?.trim());
-    
-    if (missingFields.length > 0) {
-      alert('Vui lòng điền đầy đủ: ' + missingFields.map(f => f.label).join(', '));
-      return;
-    }
+  const handleSubmitForm = async () => {
+    try {
+      const requiredFields = formData.fields.filter(field => field.required);
+      const missingFields = requiredFields.filter(field => !formValues[field.id]?.trim());
+      
+      if (missingFields.length > 0) {
+        alert('Vui lòng điền đầy đủ: ' + missingFields.map(f => f.label).join(', '));
+        return;
+      }
 
-    alert('Form đã được submit thành công!\n\nDữ liệu:\n' + JSON.stringify(formValues, null, 2));
+      setIsLoading(true);
+
+      // First, save form if not already saved
+      let formId = formData.savedFormId;
+      if (!formId) {
+        const saveResult = await saveFormToDatabase();
+        if (saveResult && saveResult.form) {
+          formId = saveResult.form.id;
+        } else {
+          throw new Error('Không thể lưu form trước khi submit');
+        }
+      }
+
+      // Submit form data
+      const submissionPayload = {
+        data: formValues,
+        metadata: {
+          submittedAt: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          conversationId: clientId
+        }
+      };
+
+      const response = await fetch(`/api/forms-enhanced/${formId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionPayload)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const successMsg = `🎉 Thông tin đã được gửi thành công!
+
+📋 Chi tiết submission:
+• Submission ID: ${result.submissionId}
+• Thời gian: ${new Date().toLocaleString('vi-VN')}
+• Form: ${formData.title}
+
+Cảm ơn bạn đã sử dụng FormAgent! 🙏`;
+
+        alert(successMsg);
+        
+        // Clear form values after successful submission
+        setFormValues({});
+      } else {
+        throw new Error(result.error || 'Không thể gửi form');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert(`Không thể gửi form: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const clearForm = () => {
     setFormValues({});
   };
 
-  const exportForm = () => {
-    const formConfig = {
-      ...formData,
-      values: formValues
-    };
-    
-    const blob = new Blob([JSON.stringify(formConfig, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = formData.title.replace(/\s+/g, '_') + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
+  const saveFormToDatabase = async () => {
+    try {
+      setIsLoading(true);
+
+      const formPayload = {
+        title: formData.title,
+        description: formData.description,
+        fields: formData.fields,
+        settings: {
+          theme: 'default',
+          submitMessage: 'Cảm ơn bạn đã gửi thông tin!',
+          allowMultipleSubmissions: true
+        },
+        metadata: {
+          aiGenerated: formData.generatedBy !== 'manual',
+          createdVia: 'form_builder',
+          version: '1.0'
+        },
+        conversationId: clientId,
+        userId: 'anonymous' // Could be replaced with actual user ID
+      };
+
+      const response = await fetch('/api/forms-enhanced/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formPayload)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Show success message with form details
+        const successMsg = `🎉 Form "${result.form.title}" đã được lưu thành công!
+        
+📋 Chi tiết:
+• ID: ${result.form.id}
+• Số trường: ${result.form.fieldsCount}
+• Ngày tạo: ${new Date(result.form.createdAt).toLocaleString('vi-VN')}
+• URL: ${window.location.origin}${result.form.url}
+
+${result.warnings?.length > 0 ? '⚠️ Cảnh báo: ' + result.warnings.join(', ') : ''}`;
+
+        alert(successMsg);
+        
+        // Store form ID for future reference
+        setFormData(prev => ({
+          ...prev,
+          savedFormId: result.form.id,
+          shareUrl: result.form.shareUrl
+        }));
+        
+        return result;
+      } else {
+        throw new Error(result.error || 'Không thể lưu form');
+      }
+    } catch (error) {
+      console.error('Error saving form:', error);
+      alert(`Không thể lưu form: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateFormData = (newFormData) => {
@@ -1325,16 +1431,18 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
               title="Xóa dữ liệu form"
             />
             <Button
-              type={isFormValid() ? 'primary' : 'default'}
+              type="primary"
               icon={<DownloadOutlined />}
-              onClick={exportForm}
-              disabled={!isFormValid()}
+              onClick={saveFormToDatabase}
+              disabled={isLoading}
               style={{ 
-                backgroundColor: isFormValid() ? '#28a745' : undefined,
-                borderColor: isFormValid() ? '#28a745' : undefined
+                backgroundColor: '#28a745',
+                borderColor: '#28a745'
               }}
-              title={isFormValid() ? "Xuất form" : "Form chưa đủ thông tin để xuất"}
-            />
+              title="Save to Database"
+            >
+              Save to Database
+            </Button>
           </Space>
         </div>
 

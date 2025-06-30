@@ -13,6 +13,10 @@ import connectDB from './config/database.js';
 import Form from './models/Form.js';
 import Submission from './models/Submission.js';
 import aiRoutes from './routes/aiRoutes.js';
+import formsRoutes from './routes/formsRoutes.js';
+import { conversationHistoryService } from './services/conversationHistoryService.js';
+import { personalityConfig, getContextualGreeting } from './config/personality.js';
+import { guardrailsEngine } from './config/guardrails.js';
 
 dotenv.config();
 
@@ -31,6 +35,91 @@ const io = new Server(server, {
   }
 });
 const PORT = process.env.PORT || 5000;
+
+// Helper functions for context-aware responses
+function buildContextAwarePrompt(message, context) {
+  const { userType, conversationHistory, userPreferences, keyTopics } = context;
+  
+  let prompt = `Bạn là FormAgent AI, một trợ lý thông minh chuyên tạo form và trò chuyện thân thiện.\n\n`;
+  
+  // Add user context
+  if (userType !== 'firstTime') {
+    prompt += `Người dùng là ${userType === 'expert' ? 'chuyên gia' : 'người dùng quen thuộc'}.\n`;
+  }
+  
+  // Add conversation history context
+  if (conversationHistory && conversationHistory.length > 0) {
+    prompt += `Ngữ cảnh cuộc trò chuyện:\n`;
+    conversationHistory.slice(-3).forEach(msg => {
+      prompt += `- ${msg.role}: ${msg.content.substring(0, 100)}...\n`;
+    });
+  }
+  
+  // Add user preferences
+  if (userPreferences && userPreferences.previousForms && userPreferences.previousForms.length > 0) {
+    prompt += `Người dùng đã tạo ${userPreferences.previousForms.length} form trước đó.\n`;
+  }
+  
+  // Add key topics
+  if (keyTopics && keyTopics.length > 0) {
+    prompt += `Chủ đề quan tâm: ${keyTopics.map(t => t.topic).join(', ')}.\n`;
+  }
+  
+  prompt += `\nTin nhắn của người dùng: "${message}"\n\nHãy trả lời một cách tự nhiên, thân thiện và phù hợp với ngữ cảnh:`;
+  
+  return prompt;
+}
+
+function generateContextualFallbackResponse(message, context) {
+  const { userType, userPreferences, keyTopics } = context;
+  const lowerMessage = message.toLowerCase();
+  
+  // Personalized greeting
+  if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+    let response = `Xin chào! Tôi là FormAgent AI 🤖\n\n`;
+    
+    if (userType === 'returning') {
+      response += `Rất vui được gặp lại bạn! `;
+    } else if (userType === 'expert') {
+      response += `Chào bạn! Sẵn sàng cho một dự án form mới? `;
+    }
+    
+    if (userPreferences && userPreferences.previousForms && userPreferences.previousForms.length > 0) {
+      const lastForm = userPreferences.previousForms.slice(-1)[0];
+      response += `\n📋 Lần trước bạn đã tạo "${lastForm.title}".`;
+    }
+    
+    response += `\n\nTôi có thể giúp bạn:\n📝 Tạo form đăng ký, khảo sát, phản hồi\n💬 Trò chuyện và tư vấn\n🔧 Thiết kế form chuyên nghiệp\n\nBạn muốn làm gì hôm nay?`;
+    
+    return response;
+  }
+  
+  // Contextual help
+  if (lowerMessage.includes('làm gì') || lowerMessage.includes('giúp gì')) {
+    let response = `Tôi có thể giúp bạn:\n\n`;
+    
+    if (keyTopics && keyTopics.length > 0) {
+      response += `🔍 Dựa trên cuộc trò chuyện, bạn quan tâm đến: ${keyTopics.map(t => t.topic).join(', ')}\n\n`;
+    }
+    
+    response += `🚀 **Tạo form nhanh chóng:**\n- "Tạo form đăng ký sự kiện"\n- "Tạo khảo sát khách hàng"\n- "Tạo form phản hồi"\n\n💡 **Tư vấn thiết kế:**\n- Cách thiết kế form hiệu quả\n- Loại trường nào phù hợp\n- Cấu hình email và API\n\nBạn muốn thử tạo form không?`;
+    
+    return response;
+  }
+  
+  // Default contextual response
+  let response = `Tôi hiểu bạn đang hỏi về: "${message}"\n\n`;
+  
+  if (userType === 'expert') {
+    response += `Với kinh nghiệm của bạn, tôi có thể hỗ trợ:\n• Advanced form validation\n• Custom field types\n• API integrations\n• Performance optimization\n\n`;
+  } else {
+    response += `Tôi là FormAgent AI, chuyên gia về tạo form! 🎯\n\n`;
+  }
+  
+  response += `Một số gợi ý:\n• Hỏi "làm thế nào để tạo form hiệu quả?"\n• Thử nói "tạo form đăng ký workshop"\n• Hoặc hỏi bất cứ điều gì về form và thiết kế!\n\nBạn muốn tôi giúp gì khác?`;
+  
+  return response;
+}
 
 // Rate limiting
 const limiter = rateLimit({
@@ -63,20 +152,67 @@ io.on('connection', (socket) => {
     console.log(`🏠 Client ${socket.id} joined room: ${room}`);
   });
 
-  // Handle form generation via WebSocket
+  // Handle form generation via WebSocket with persistent context
   socket.on('generate-form', async (data) => {
     try {
       console.log(`📝 Form generation request from ${socket.id}:`, data);
       
-      // Send immediate acknowledgment
+      const { 
+        description, 
+        requirements = {}, 
+        autoSave = false, 
+        useCrewAI = true,
+        conversationId = `conv_${Date.now()}_${socket.id}`,
+        userId = 'anonymous'
+      } = data;
+
+      // Get or create conversation with persistent context
+      const conversation = await conversationHistoryService.getOrCreateConversation(
+        conversationId, 
+        userId, 
+        socket.id
+      );
+
+      // Add user message to conversation history
+      await conversationHistoryService.addMessage(conversationId, {
+        role: 'user',
+        content: `Tạo form: ${description}`,
+        metadata: { 
+          type: 'form_generation_request',
+          requirements: requirements
+        }
+      }, userId);
+
+      // Get conversation context for personalized generation
+      const context = await conversationHistoryService.getConversationContext(conversationId);
+      const greeting = await conversationHistoryService.getContextualGreeting(conversationId, userId);
+      
+      // Send personalized acknowledgment
       socket.emit('form-generation-started', {
         success: true,
         message: 'Đang tạo form...',
+        personalizedMessage: greeting.personalTouch,
+        suggestions: greeting.tips,
         timestamp: new Date().toISOString()
       });
 
-      // Import the generate-form logic from aiRoutes
-      const { description, requirements = {}, autoSave = false, useCrewAI = true } = data;
+      // Check content safety with guardrails
+      const safetyCheck = guardrailsEngine.checkContentSafety(description);
+      if (!safetyCheck.safe) {
+        await conversationHistoryService.addMessage(conversationId, {
+          role: 'system',
+          content: 'Content safety violation detected',
+          metadata: { violations: safetyCheck.violations }
+        }, userId);
+        
+        socket.emit('form-generation-error', {
+          success: false,
+          error: 'Nội dung không phù hợp với chính sách bảo mật',
+          details: safetyCheck.violations,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
       
       // Import AI services
       const aiService = (await import('./services/aiService.js')).default;
@@ -85,10 +221,20 @@ io.on('connection', (socket) => {
       let generatedForm;
       let service = 'fallback-template';
 
-      // Try Enhanced service first
+      // Enhanced requirements with conversation context
+      const enhancedRequirements = {
+        ...requirements,
+        context: context,
+        userPreferences: context.userPreferences,
+        previousForms: context.userPreferences.previousForms,
+        userType: context.userType,
+        conversationHistory: context.shortTerm.slice(-5) // Last 5 messages for context
+      };
+
+      // Try Enhanced service first with context
       if (useCrewAI && enhancedAgentService.isEnabled()) {
         try {
-          generatedForm = await enhancedAgentService.generateForm(description, requirements);
+          generatedForm = await enhancedAgentService.generateForm(description, enhancedRequirements);
           service = 'LangChain';
         } catch (crewError) {
           console.error('LangChain form generation error:', crewError);
@@ -129,15 +275,67 @@ io.on('connection', (socket) => {
         service = 'fallback-template';
       }
 
-      // Send successful result
+      // Validate generated form with guardrails
+      const formValidation = guardrailsEngine.validateFormDesign(generatedForm);
+      
+      // Add assistant response to persistent conversation history
+      await conversationHistoryService.addMessage(conversationId, {
+        role: 'assistant',
+        content: `Đã tạo form "${generatedForm.title}" với ${generatedForm.fields.length} trường`,
+        metadata: { 
+          type: 'form_generation_response',
+          service: service,
+          formData: generatedForm,
+          validationIssues: formValidation.issues
+        }
+      }, userId);
+
+      // Record form creation in conversation history if auto-save
+      if (autoSave) {
+        try {
+          const form = new Form({
+            title: generatedForm.title,
+            description: generatedForm.description,
+            fields: generatedForm.fields,
+            settings: {
+              aiGenerated: true,
+              generationPrompt: description,
+              generationRequirements: enhancedRequirements
+            },
+            metadata: {
+              conversationId: conversationId,
+              userId: userId,
+              service: service
+            }
+          });
+
+          const savedForm = await form.save();
+          await conversationHistoryService.recordFormCreation(conversationId, savedForm);
+          console.log('Form auto-saved and recorded in conversation:', savedForm._id);
+        } catch (saveError) {
+          console.error('Failed to auto-save form:', saveError);
+        }
+      }
+
+      // Send successful result with context
       socket.emit('form-generated', {
         success: true,
         generatedForm,
+        conversationId,
+        context: {
+          userType: context.userType,
+          suggestions: greeting.tips,
+          previousFormsCount: context.userPreferences.previousForms.length,
+          keyTopics: context.keyTopics.slice(0, 3)
+        },
         metadata: {
           generatedAt: new Date().toISOString(),
           service: service,
           provider: service === 'LangChain' ? 'azure' : 'template',
-          autoSaved: false
+          autoSaved: autoSave,
+          safetyWarnings: safetyCheck.warnings,
+          validationIssues: formValidation.issues,
+          conversationLength: context.shortTerm.length
         }
       });
 
@@ -152,16 +350,63 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle chat via WebSocket
+  // Handle chat via WebSocket with persistent context
   socket.on('chat-message', async (data) => {
     try {
       console.log(`💬 Chat message from ${socket.id}:`, data);
       
-      const { message, conversation_id, context = {}, useCrewAI = true } = data;
+      const { 
+        message, 
+        conversation_id, 
+        context = {}, 
+        useCrewAI = true,
+        userId = 'anonymous'
+      } = data;
       
-      // Send typing indicator
+      const conversationId = conversation_id || `chat_${Date.now()}_${socket.id}`;
+
+      // Get or create conversation with persistent context
+      const conversation = await conversationHistoryService.getOrCreateConversation(
+        conversationId, 
+        userId, 
+        socket.id
+      );
+
+      // Check content safety
+      const safetyCheck = guardrailsEngine.checkContentSafety(message);
+      if (!safetyCheck.safe) {
+        await conversationHistoryService.addMessage(conversationId, {
+          role: 'system',
+          content: 'Content safety violation in chat',
+          metadata: { violations: safetyCheck.violations }
+        }, userId);
+        
+        socket.emit('chat-error', {
+          success: false,
+          error: 'Nội dung không phù hợp với chính sách bảo mật',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      // Add user message to conversation history
+      await conversationHistoryService.addMessage(conversationId, {
+        role: 'user',
+        content: message,
+        metadata: { 
+          type: 'chat_message',
+          socketId: socket.id
+        }
+      }, userId);
+
+      // Get conversation context for personalized responses
+      const persistentContext = await conversationHistoryService.getConversationContext(conversationId);
+      const greeting = await conversationHistoryService.getContextualGreeting(conversationId, userId);
+      
+      // Send personalized typing indicator
       socket.emit('chat-typing', {
         typing: true,
+        personalizedMessage: greeting.topicSuggestion,
         timestamp: new Date().toISOString()
       });
 
@@ -171,15 +416,27 @@ io.on('connection', (socket) => {
       
       let response;
       let service = 'fallback';
-      const conversationId = conversation_id || `chat_${Date.now()}`;
 
-      // Try LangChain first if enabled and requested
+      // Enhanced context with conversation history
+      const enhancedContext = {
+        ...context,
+        ...persistentContext,
+        language: 'Vietnamese',
+        conversationHistory: persistentContext.shortTerm,
+        userPreferences: persistentContext.userPreferences,
+        userType: persistentContext.userType,
+        keyTopics: persistentContext.keyTopics,
+        personality: personalityConfig.personality,
+        guidelines: persistentContext.guidelines
+      };
+
+      // Try LangChain first with persistent context
       if (useCrewAI && enhancedAgentService.isEnabled()) {
         try {
           const chatResponse = await enhancedAgentService.handleChatMessage(
             message,
             conversationId,
-            { ...context, language: 'Vietnamese' }
+            enhancedContext
           );
           
           response = chatResponse.response;
@@ -190,22 +447,12 @@ io.on('connection', (socket) => {
         }
       }
 
-      // Try legacy AI service if LangChain failed
+      // Try legacy AI service with context if LangChain failed
       if (!response && aiService.isEnabled()) {
         try {
-          response = await aiService.generateCompletion(`
-Bạn là FormAgent AI, một trợ lý thông minh chuyên tạo form và trò chuyện thân thiện.
-
-Nhiệm vụ của bạn:
-1. Trả lời các câu hỏi thông thường một cách tự nhiên và thân thiện
-2. Tư vấn về thiết kế form khi được hỏi
-3. Giải thích các tính năng của FormAgent
-4. Nếu người dùng muốn tạo form, hướng dẫn họ sử dụng từ khóa như "tạo form", "tạo biểu mẫu"
-
-Tin nhắn của người dùng: "${message}"
-
-Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
-
+          // Build context-aware prompt
+          const contextPrompt = buildContextAwarePrompt(message, enhancedContext);
+          response = await aiService.generateCompletion(contextPrompt);
           service = 'legacy';
         } catch (aiError) {
           console.error('Legacy AI chat error:', aiError);
@@ -213,40 +460,48 @@ Hãy trả lời một cách tự nhiên, thân thiện và hữu ích:`);
         }
       }
 
-      // Default responses for common questions
+      // Context-aware default responses
       if (!response) {
-        const lowerMessage = message.toLowerCase();
-        if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-          response = `Xin chào! Tôi là FormAgent AI 🤖
-
-Tôi có thể giúp bạn:
-📝 Tạo form đăng ký, khảo sát, phản hồi
-💬 Trò chuyện và tư vấn
-🔧 Thiết kế form chuyên nghiệp
-
-Bạn muốn làm gì hôm nay?`;
-        } else {
-          response = `Tôi hiểu bạn đang hỏi về: "${message}"
-
-Tôi là FormAgent AI, chuyên gia về tạo form! 🎯
-
-Một số gợi ý:
-• Hỏi "làm thế nào để tạo form hiệu quả?"
-• Thử nói "tạo form đăng ký workshop"
-• Hoặc hỏi bất cứ điều gì về form và thiết kế!
-
-Bạn muốn tôi giúp gì khác?`;
-        }
+        response = generateContextualFallbackResponse(message, enhancedContext);
         service = 'fallback';
       }
 
-      // Stop typing and send response
+      // Improve response quality with guardrails
+      response = guardrailsEngine.improveResponse(response, {
+        conversationHistory: persistentContext.shortTerm,
+        userType: persistentContext.userType,
+        topic: 'chat'
+      });
+
+      // Add assistant response to conversation history
+      await conversationHistoryService.addMessage(conversationId, {
+        role: 'assistant',
+        content: response,
+        metadata: { 
+          type: 'chat_response',
+          service: service,
+          safetyWarnings: safetyCheck.warnings
+        }
+      }, userId);
+
+      // Stop typing and send enhanced response
       socket.emit('chat-typing', { typing: false });
       socket.emit('chat-response', {
         success: true,
         response: response,
         conversation_id: conversationId,
         service: service,
+        context: {
+          userType: persistentContext.userType,
+          suggestions: greeting.tips,
+          previousFormsCount: persistentContext.userPreferences.previousForms.length,
+          keyTopics: persistentContext.keyTopics.slice(0, 3),
+          conversationLength: persistentContext.shortTerm.length
+        },
+        metadata: {
+          safetyWarnings: safetyCheck.warnings,
+          personalizedGreeting: greeting.personalTouch
+        },
         timestamp: new Date().toISOString()
       });
 
@@ -502,6 +757,7 @@ app.post('/api/process-form', async (req, res) => {
 
 // Routes
 app.use('/api/ai', aiRoutes);
+app.use('/api/forms-enhanced', formsRoutes);
 app.get('/api/health', async (req, res) => {
   try {
     // Check database connection
