@@ -1,299 +1,208 @@
-<mxfile host="app.diagrams.net" modified="2025-06-28T00:00:00.000Z" agent="5.0" etag="abc123" version="24.7.14" type="device">
-  <diagram name="FormAgent-Architecture" id="architecture-diagram">
-    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        
-        <!-- Title -->
-        <mxCell id="title" value="FormAgent AI - Architecture &amp; Network Communication" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="20" width="470" height="40" as="geometry" />
-        </mxCell>
-
-        <!-- User/Browser -->
-        <mxCell id="browser" value="User Browser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="515" y="100" width="140" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- Frontend Container -->
-        <mxCell id="frontend" value="Frontend Container&#xa;(React + Vite)&#xa;Port: 3000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="515" y="240" width="140" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- Backend Container -->
-        <mxCell id="backend" value="Backend Container&#xa;(Express.js + Socket.io)&#xa;Port: 5000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="515" y="400" width="140" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- MongoDB Container -->
-        <mxCell id="mongodb" value="MongoDB Container&#xa;(mongo:7.0)&#xa;Port: 27017" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="280" y="560" width="140" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- Mongo Express -->
-        <mxCell id="mongo-express" value="Mongo Express&#xa;(mongo-express:1.0.2)&#xa;Port: 8081" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="750" y="560" width="140" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- AI Service -->
-        <mxCell id="ai-service" value="AI Service&#xa;(OpenAI/Azure)&#xa;External API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="750" y="400" width="140" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- HTTP Connections -->
-        <mxCell id="http1" value="HTTP/HTTPS" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="browser" target="frontend">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="585" y="200" as="sourcePoint" />
-            <mxPoint x="585" y="240" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="http2" value="REST API&#xa;HTTP" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="frontend" target="backend">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="585" y="340" as="sourcePoint" />
-            <mxPoint x="585" y="380" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- WebSocket Connection -->
-        <mxCell id="websocket" value="WebSocket&#xa;(Socket.io)" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff6666;dashed=1;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="655" y="280" as="sourcePoint" />
-            <mxPoint x="655" y="440" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="700" y="280" />
-              <mxPoint x="700" y="440" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- MongoDB Connection -->
-        <mxCell id="mongo-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" edge="1" parent="1" source="backend" target="mongodb">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="515" y="480" as="sourcePoint" />
-            <mxPoint x="420" y="560" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- AI Service Connection -->
-        <mxCell id="ai-conn" value="HTTPS&#xa;API Calls" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" edge="1" parent="1" source="backend" target="ai-service">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="655" y="440" as="sourcePoint" />
-            <mxPoint x="750" y="440" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- Mongo Express Connection -->
-        <mxCell id="mexpress-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" edge="1" parent="1" source="mongo-express" target="mongodb">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="750" y="600" as="sourcePoint" />
-            <mxPoint x="420" y="600" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <!-- Admin Browser Connection -->
-        <mxCell id="admin-conn" value="HTTP&#xa;Admin UI" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff9900;dashed=1;" edge="1" parent="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="620" y="160" as="sourcePoint" />
-            <mxPoint x="820" y="560" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="620" y="180" />
-              <mxPoint x="950" y="180" />
-              <mxPoint x="950" y="540" />
-              <mxPoint x="820" y="540" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <!-- Docker Network -->
-        <mxCell id="docker-network" value="Docker Network: formagent-network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=14;fontStyle=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="200" y="350" width="770" height="340" as="geometry" />
-        </mxCell>
-
-        <!-- Communication Details -->
-        <mxCell id="comm-details" value="Communication Types:&#xa;• HTTP/REST: Form data, AI requests&#xa;• WebSocket: Real-time updates, form processing status&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="50" y="710" width="380" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- Build Order -->
-        <mxCell id="build-order" value="Docker Compose Build Order:&#xa;1. MongoDB (with health check)&#xa;2. Mongo Express (depends on MongoDB)&#xa;3. Backend (depends on MongoDB)&#xa;4. Frontend (depends on Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="450" y="710" width="280" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- Docker Commands -->
-        <mxCell id="docker-cmds" value="Docker Commands:&#xa;• docker-compose up -d&#xa;• docker-compose down&#xa;• docker-compose logs -f [service]&#xa;• docker-compose ps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="750" y="710" width="220" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- WebSocket Details -->
-        <mxCell id="ws-details" value="WebSocket Events:&#xa;• form:processing&#xa;• form:completed&#xa;• form:error&#xa;• ai:generating" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="720" y="320" width="120" height="70" as="geometry" />
-        </mxCell>
-
-        <!-- API Endpoints -->
-        <mxCell id="api-endpoints" value="API Endpoints:&#xa;/api/forms&#xa;/api/submissions&#xa;/api/ai/generate-form&#xa;/api/health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="380" y="320" width="120" height="70" as="geometry" />
-        </mxCell>
-
-        <!-- Volumes -->
-        <mxCell id="volumes" value="Docker Volumes:&#xa;• mongodb_data&#xa;• mongodb_config&#xa;• node_modules (backend)&#xa;• node_modules (frontend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="50" y="560" width="150" height="80" as="geometry" />
-        </mxCell>
-
-      </root>
-    </mxGraphModel>
-  </diagram>
-  <diagram name="Agent-Architecture" id="agent-architecture-diagram">
-    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        
-        <!-- Title -->
-        <mxCell id="agent-title" value="Enhanced AI Agent System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="350" y="20" width="470" height="40" as="geometry" />
-        </mxCell>
-
-        <!-- Main Service -->
-        <mxCell id="enhanced-service" value="EnhancedAgentService&#xa;(Singleton)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="470" y="100" width="230" height="80" as="geometry" />
-        </mxCell>
-
-        <!-- FormBuilder Agent -->
-        <mxCell id="formbuilder-agent" value="FormBuilderAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="250" y="250" width="200" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- ChatAssistant Agent -->
-        <mxCell id="chatassistant-agent" value="ChatAssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="720" y="250" width="200" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- FormBuilder Capabilities -->
-        <mxCell id="form-capabilities" value="Capabilities:&#xa;• Form Generation&#xa;• Form Optimization&#xa;• Form Validation&#xa;• Field Suggestions&#xa;• UX Improvements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;" vertex="1" parent="1">
-          <mxGeometry x="230" y="340" width="180" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- ChatAssistant Capabilities -->
-        <mxCell id="chat-capabilities" value="Capabilities:&#xa;• Natural Conversation&#xa;• Knowledge Queries&#xa;• Context Management&#xa;• Conversation Analysis&#xa;• Memory (20 messages)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;" vertex="1" parent="1">
-          <mxGeometry x="760" y="340" width="180" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- OpenAI/Azure Client -->
-        <mxCell id="openai-client" value="OpenAI Client&#xa;(OpenAI / AzureOpenAI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="470" y="480" width="230" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- Configuration -->
-        <mxCell id="config-box" value="Configuration:&#xa;• Provider: Azure/OpenAI&#xa;• Model: gpt-3.5-turbo&#xa;• Temperature: 0.7&#xa;• Max Tokens: 2000&#xa;• API Keys from env" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;" vertex="1" parent="1">
-          <mxGeometry x="50" y="100" width="180" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- API Routes -->
-        <mxCell id="api-routes" value="API Routes&#xa;(/api/ai/*)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="940" y="100" width="180" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- Route Endpoints -->
-        <mxCell id="route-endpoints" value="Endpoints:&#xa;• /generate-form&#xa;• /chat&#xa;• /optimize-form/:id&#xa;• /validate-form&#xa;• /chat/analyze/:id&#xa;• /health&#xa;• /stats&#xa;• /config" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=11;align=left;" vertex="1" parent="1">
-          <mxGeometry x="960" y="180" width="140" height="120" as="geometry" />
-        </mxCell>
-
-        <!-- Memory Management -->
-        <mxCell id="memory-mgmt" value="Conversation Memory:&#xa;• Map&lt;conversationId, messages[]&gt;&#xa;• Max 20 messages per conversation&#xa;• Max 100 conversations&#xa;• Auto cleanup old conversations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=11;align=left;" vertex="1" parent="1">
-          <mxGeometry x="760" y="470" width="220" height="90" as="geometry" />
-        </mxCell>
-
-        <!-- Legacy AI Service -->
-        <mxCell id="legacy-service" value="Legacy AIService&#xa;(Fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="50" y="480" width="160" height="60" as="geometry" />
-        </mxCell>
-
-        <!-- Connections -->
-        <mxCell id="conn1" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="enhanced-service" target="formbuilder-agent">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn2" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="enhanced-service" target="chatassistant-agent">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="formbuilder-agent" target="form-capabilities">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn4" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="chatassistant-agent" target="chat-capabilities">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn5" value="Uses" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="formbuilder-agent" target="openai-client">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn6" value="Uses" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="chatassistant-agent" target="openai-client">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn7" value="Initializes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;dashed=1;" edge="1" parent="1" source="config-box" target="enhanced-service">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn8" value="Calls" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="api-routes" target="enhanced-service">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn9" value="Fallback" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#999999;dashed=1;" edge="1" parent="1" source="enhanced-service" target="legacy-service">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <mxCell id="conn10" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" edge="1" parent="1" source="chatassistant-agent" target="memory-mgmt">
-          <mxGeometry width="50" height="50" relative="1" as="geometry" />
-        </mxCell>
-
-        <!-- Features Box -->
-        <mxCell id="features-box" value="Key Features:&#xa;• Multi-agent architecture&#xa;• Direct OpenAI integration (no LangChain)&#xa;• Conversation memory management&#xa;• Automatic fallback to legacy service&#xa;• Support for Azure OpenAI &amp; OpenAI&#xa;• Health checks and statistics&#xa;• Structured logging with Winston" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=12;align=left;" vertex="1" parent="1">
-          <mxGeometry x="50" y="600" width="350" height="120" as="geometry" />
-        </mxCell>
-
-        <!-- Agent Methods -->
-        <mxCell id="form-methods" value="FormBuilder Methods:&#xa;• generateForm()&#xa;• optimizeForm()&#xa;• validateForm()&#xa;• parseFormResult()&#xa;• buildPrompts()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
-          <mxGeometry x="50" y="340" width="150" height="100" as="geometry" />
-        </mxCell>
-
-        <mxCell id="chat-methods" value="ChatAssistant Methods:&#xa;• handleChatMessage()&#xa;• handleKnowledgeQuery()&#xa;• analyzeConversation()&#xa;• getConversationSummary()&#xa;• clearConversationHistory()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
-          <mxGeometry x="570" y="340" width="170" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- Data Flow -->
-        <mxCell id="dataflow-title" value="Data Flow Example:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="450" y="600" width="150" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow1" value="1. User sends chat message" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="450" y="640" width="170" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow2" value="2. API Route → EnhancedAgentService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="640" y="640" width="230" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow3" value="3. Service → ChatAssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="890" y="640" width="190" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow4" value="4. Agent → OpenAI API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="450" y="680" width="140" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow5" value="5. Store in conversation memory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="610" y="680" width="190" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="flow6" value="6. Return response to user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="820" y="680" width="160" height="30" as="geometry" />
-        </mxCell>
-
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="FormAgent-Architecture" id="architecture-diagram">
+        <mxGraphModel dx="1114" dy="309" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="docker-network" value="Docker Network: formagent-network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=14;fontStyle=1;dashed=1;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="350" width="770" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="FormAgent AI - Architecture &amp; Network Communication" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="20" width="470" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="browser" value="User Browser" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="515" y="100" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="frontend" value="Frontend Container&#xa;(React + Vite)&#xa;Port: 3000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="515" y="240" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="backend" value="Backend Container&#xa;(Express.js + Socket.io)&#xa;Port: 5000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="515" y="400" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="mongodb" value="MongoDB Container&#xa;(mongo:7.0)&#xa;Port: 27017" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="280" y="560" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="mongo-express" value="Mongo Express&#xa;(mongo-express:1.0.2)&#xa;Port: 8081" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="560" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="ai-service" value="AI Service&#xa;(OpenAI/Azure)&#xa;External API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="400" width="140" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="http1" value="HTTP/HTTPS" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" parent="1" source="browser" target="frontend" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="585" y="200" as="sourcePoint"/>
+                        <mxPoint x="585" y="240" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="http2" value="REST API&#xa;HTTP" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" parent="1" source="frontend" target="backend" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="585" y="340" as="sourcePoint"/>
+                        <mxPoint x="585" y="380" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="websocket" value="WebSocket&#xa;(Socket.io)" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff6666;dashed=1;" parent="1" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="655" y="280" as="sourcePoint"/>
+                        <mxPoint x="655" y="440" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="700" y="280"/>
+                            <mxPoint x="700" y="440"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="mongo-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" parent="1" source="backend" target="mongodb" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="515" y="480" as="sourcePoint"/>
+                        <mxPoint x="420" y="560" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ai-conn" value="HTTPS&#xa;API Calls" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0066cc;" parent="1" source="backend" target="ai-service" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="655" y="440" as="sourcePoint"/>
+                        <mxPoint x="750" y="440" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="mexpress-conn" value="MongoDB Protocol" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#009900;" parent="1" source="mongo-express" target="mongodb" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="750" y="600" as="sourcePoint"/>
+                        <mxPoint x="420" y="600" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="admin-conn" value="HTTP&#xa;Admin UI" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#ff9900;dashed=1;" parent="1" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="620" y="160" as="sourcePoint"/>
+                        <mxPoint x="820" y="560" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="620" y="180"/>
+                            <mxPoint x="950" y="180"/>
+                            <mxPoint x="950" y="540"/>
+                            <mxPoint x="820" y="540"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="comm-details" value="Communication Types:&#xa;• HTTP/REST: Form data, AI requests&#xa;• WebSocket: Real-time updates, form processing status&#xa;• MongoDB Protocol: Database operations&#xa;• External HTTPS: AI API calls (OpenAI/Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="710" width="380" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="build-order" value="Docker Compose Build Order:&#xa;1. MongoDB (with health check)&#xa;2. Mongo Express (depends on MongoDB)&#xa;3. Backend (depends on MongoDB)&#xa;4. Frontend (depends on Backend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="710" width="280" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="docker-cmds" value="Docker Commands:&#xa;• docker-compose up -d&#xa;• docker-compose down&#xa;• docker-compose logs -f [service]&#xa;• docker-compose ps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="710" width="220" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="ws-details" value="WebSocket Events:&#xa;• form:processing&#xa;• form:completed&#xa;• form:error&#xa;• ai:generating" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="320" width="120" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="api-endpoints" value="API Endpoints:&#xa;/api/forms&#xa;/api/submissions&#xa;/api/ai/generate-form&#xa;/api/health" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="380" y="320" width="120" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="volumes" value="Docker Volumes:&#xa;• mongodb_data&#xa;• mongodb_config&#xa;• node_modules (backend)&#xa;• node_modules (frontend)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=10;align=left;verticalAlign=top;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="560" width="150" height="80" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram name="Agent-Architecture" id="agent-architecture-diagram">
+        <mxGraphModel dx="1114" dy="309" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="agent-title" value="Enhanced AI Agent System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="350" y="20" width="470" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="enhanced-service" value="EnhancedAgentService&#xa;(Singleton)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="100" width="230" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="formbuilder-agent" value="FormBuilderAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="250" y="250" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="chatassistant-agent" value="ChatAssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="250" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="form-capabilities" value="Capabilities:&#xa;• Form Generation&#xa;• Form Optimization&#xa;• Form Validation&#xa;• Field Suggestions&#xa;• UX Improvements" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="450" width="180" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="chat-capabilities" value="Capabilities:&#xa;• Natural Conversation&#xa;• Knowledge Queries&#xa;• Context Management&#xa;• Conversation Analysis&#xa;• Memory (20 messages)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="340" width="180" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="openai-client" value="OpenAI Client&#xa;(OpenAI / AzureOpenAI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="480" width="230" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="config-box" value="Configuration:&#xa;• Provider: Azure/OpenAI&#xa;• Model: gpt-3.5-turbo&#xa;• Temperature: 0.7&#xa;• Max Tokens: 2000&#xa;• API Keys from env" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="100" width="180" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="api-routes" value="API Routes&#xa;(/api/ai/*)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#0066cc;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="940" y="100" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="route-endpoints" value="Endpoints:&#xa;• /generate-form&#xa;• /chat&#xa;• /optimize-form/:id&#xa;• /validate-form&#xa;• /chat/analyze/:id&#xa;• /health&#xa;• /stats&#xa;• /config" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6e6ff;strokeColor=#6666ff;fontSize=11;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="180" width="140" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="memory-mgmt" value="Conversation Memory:&#xa;• Map&lt;conversationId, messages[]&gt;&#xa;• Max 20 messages per conversation&#xa;• Max 100 conversations&#xa;• Auto cleanup old conversations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#ff6666;fontSize=11;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="480" width="220" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="legacy-service" value="Legacy AIService&#xa;(Fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;dashed=1;" parent="1" vertex="1">
+                    <mxGeometry x="505" y="250" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn1" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="enhanced-service" target="formbuilder-agent" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn2" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="enhanced-service" target="chatassistant-agent" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="formbuilder-agent" target="form-capabilities" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn4" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="chatassistant-agent" target="chat-capabilities" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn5" value="Uses" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="formbuilder-agent" target="openai-client" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn6" value="Uses" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="chatassistant-agent" target="openai-client" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn7" value="Initializes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;dashed=1;" parent="1" source="config-box" target="enhanced-service" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn8" value="Calls" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="api-routes" target="enhanced-service" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn9" value="Fallback" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#999999;dashed=1;" parent="1" source="enhanced-service" target="legacy-service" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn10" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;" parent="1" source="chatassistant-agent" target="memory-mgmt" edge="1">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="features-box" value="Key Features:&#xa;• Multi-agent architecture&#xa;• Direct OpenAI integration (no LangChain)&#xa;• Conversation memory management&#xa;• Automatic fallback to legacy service&#xa;• Support for Azure OpenAI &amp; OpenAI&#xa;• Health checks and statistics&#xa;• Structured logging with Winston" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66cc66;fontSize=12;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="600" width="350" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="form-methods" value="FormBuilder Methods:&#xa;• generateForm()&#xa;• optimizeForm()&#xa;• validateForm()&#xa;• parseFormResult()&#xa;• buildPrompts()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="450" width="150" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="chat-methods" value="ChatAssistant Methods:&#xa;• handleChatMessage()&#xa;• handleKnowledgeQuery()&#xa;• analyzeConversation()&#xa;• getConversationSummary()&#xa;• clearConversationHistory()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="500" y="320" width="170" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="dataflow-title" value="Data Flow Example:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="600" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow1" value="1. User sends chat message" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="640" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow2" value="2. API Route → EnhancedAgentService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="640" width="230" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow3" value="3. Service → ChatAssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="890" y="640" width="190" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow4" value="4. Agent → OpenAI API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="450" y="680" width="140" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow5" value="5. Store in conversation memory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="610" y="680" width="190" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow6" value="6. Return response to user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="820" y="680" width="160" height="30" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
