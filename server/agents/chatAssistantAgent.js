@@ -22,8 +22,7 @@ class ChatAssistantAgent {
       return new AzureOpenAI({
         apiKey: this.config.apiKey,
         endpoint: this.config.endpoint,
-        apiVersion: this.config.apiVersion,
-        deployment: this.config.deployment
+        apiVersion: this.config.apiVersion
       });
     } else {
       return new OpenAI({
@@ -111,7 +110,7 @@ Respond naturally and helpfully in ${context.language || 'English'}.`
       messages.push(...recentHistory);
 
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: messages,
         temperature: this.config.temperature,
         max_tokens: this.config.maxTokens
@@ -160,7 +159,7 @@ Respond naturally and helpfully in ${context.language || 'English'}.`
       });
 
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: [
           {
             role: 'system',
@@ -229,7 +228,7 @@ Answer in a clear, structured format:`
       ).join('\n');
 
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: [
           {
             role: 'system',

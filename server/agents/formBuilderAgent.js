@@ -19,8 +19,7 @@ class FormBuilderAgent {
       return new AzureOpenAI({
         apiKey: this.config.apiKey,
         endpoint: this.config.endpoint,
-        apiVersion: this.config.apiVersion,
-        deployment: this.config.deployment
+        apiVersion: this.config.apiVersion
       });
     } else {
       return new OpenAI({
@@ -42,7 +41,7 @@ class FormBuilderAgent {
       const prompt = this.buildFormGenerationPrompt(description, requirements);
       
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: [
           {
             role: 'system',
@@ -84,7 +83,7 @@ class FormBuilderAgent {
       const prompt = this.buildOptimizationPrompt(existingForm, goals);
       
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: [
           {
             role: 'system',
@@ -123,7 +122,7 @@ class FormBuilderAgent {
       const prompt = this.buildValidationPrompt(formData);
       
       const completion = await this.client.chat.completions.create({
-        model: this.config.model,
+        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
         messages: [
           {
             role: 'system',
