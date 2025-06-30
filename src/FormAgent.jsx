@@ -1009,6 +1009,7 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
           setFormValues({});
         }
       }
+        }
     } else {
       // Handle regular chat message via WebSocket
       if (socket && socket.connected) {
