@@ -1372,9 +1372,9 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
                 </div>
 
                 <Form layout="vertical">
-                  {formData.fields.map((field) => (
+                  {formData.fields.map((field, index) => (
                     <Form.Item
-                      key={field.id}
+                      key={field.id || field.name || `field-${index}`}
                       label={
                         <Text strong style={{ color: '#ff7a00' }}>
                           {field.label}
@@ -1537,7 +1537,7 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
                   <div className="space-y-4">
                     {formData.fields.map((field, index) => (
                       <FieldEditor
-                        key={field.id}
+                        key={field.id || field.name || `field-${index}`}
                         field={field}
                         index={index}
                         onUpdate={(updatedField) => updateField(index, updatedField)}
