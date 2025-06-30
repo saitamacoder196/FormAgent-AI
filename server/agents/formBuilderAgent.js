@@ -268,13 +268,81 @@ Format as:
    */
   parseFormResult(result) {
     try {
-      // Extract JSON from the result
-      const jsonMatch = result.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON structure found in result');
+      logger.info('Parsing form result', { 
+        resultLength: result.length, 
+        preview: result.substring(0, 500),
+        fullResult: result.length < 1000 ? result : result.substring(0, 1000) + '...[truncated]'
+      });
+      
+      // Clean the result first
+      let cleanedResult = result.trim();
+      
+      // Remove markdown code blocks if present
+      cleanedResult = cleanedResult.replace(/```json\n?|\n?```/g, '');
+      cleanedResult = cleanedResult.replace(/```\n?|\n?```/g, '');
+      
+      // Try multiple JSON extraction approaches
+      let jsonData = null;
+      
+      // Approach 1: Find complete JSON object
+      const jsonMatch = cleanedResult.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          jsonData = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          logger.logError(e, { context: 'JSON parse attempt 1' });
+        }
       }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Approach 2: If first approach fails, try to fix common issues
+      if (!jsonData) {
+        // Fix common JSON issues
+        let fixedJson = cleanedResult;
+        // Replace single quotes with double quotes
+        fixedJson = fixedJson.replace(/'/g, '"');
+        // Fix trailing commas
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, '$1');
+        
+        const fixedMatch = fixedJson.match(/\{[\s\S]*\}/);
+        if (fixedMatch) {
+          try {
+            jsonData = JSON.parse(fixedMatch[0]);
+          } catch (e) {
+            logger.logError(e, { context: 'JSON parse attempt 2' });
+          }
+        }
+      }
+      
+      // Approach 3: If still fails, extract between specific markers
+      if (!jsonData) {
+        const startMarkers = ['{', '{"title"', '{"fields"'];
+        const endMarkers = ['}'];
+        
+        for (const startMarker of startMarkers) {
+          const startIndex = cleanedResult.indexOf(startMarker);
+          if (startIndex !== -1) {
+            for (const endMarker of endMarkers) {
+              const endIndex = cleanedResult.lastIndexOf(endMarker);
+              if (endIndex > startIndex) {
+                try {
+                  const extracted = cleanedResult.substring(startIndex, endIndex + 1);
+                  jsonData = JSON.parse(extracted);
+                  break;
+                } catch (e) {
+                  // Continue trying
+                }
+              }
+            }
+            if (jsonData) break;
+          }
+        }
+      }
+      
+      if (!jsonData) {
+        throw new Error('Could not extract valid JSON from result');
+      }
+      
+      const parsed = jsonData;
       
       // Validate required structure
       if (!parsed.fields || !Array.isArray(parsed.fields)) {
