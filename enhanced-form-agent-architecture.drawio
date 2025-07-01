@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="5.0" version="21.0.0" etag="enhanced-form-agent">
+  <diagram name="Enhanced Form Agent Architecture" id="enhanced-form-agent-arch">
+    <mxGraphModel dx="1434" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Enhanced Form Agent Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="250" y="20" width="350" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Frontend Layer -->
+        <mxCell id="frontend-layer" value="Frontend Layer" style="swimlane;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="40" y="80" width="770" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- FormAgent.jsx -->
+        <mxCell id="formagent" value="FormAgent.jsx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="20" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Form State -->
+        <mxCell id="form-state" value="Form State&#xa;(formData)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="170" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Chat Interface -->
+        <mxCell id="chat-interface" value="Chat Interface&#xa;(messages)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="320" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- WebSocket Client -->
+        <mxCell id="websocket-client" value="WebSocket Client&#xa;(socket.io)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="470" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Form Actions Handler -->
+        <mxCell id="form-actions" value="handleFormAction()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="620" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Events sent -->
+        <mxCell id="events-sent" value="Events Sent:&#xa;• chat-message-with-context&#xa;• form-save&#xa;• form-status&#xa;• form-manipulate" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="20" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Events received -->
+        <mxCell id="events-received" value="Events Received:&#xa;• chat-response&#xa;• form-actions&#xa;• form-save-confirmation&#xa;• form-save-ready" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" parent="frontend-layer" vertex="1">
+          <mxGeometry x="540" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- WebSocket Layer -->
+        <mxCell id="websocket-layer" value="WebSocket Layer" style="swimlane;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="40" y="300" width="770" height="150" as="geometry" />
+        </mxCell>
+        
+        <!-- Server WebSocket -->
+        <mxCell id="server-websocket" value="server.js&#xa;(Socket.IO Server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="websocket-layer" vertex="1">
+          <mxGeometry x="20" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Enhanced Form Handlers -->
+        <mxCell id="enhanced-handlers" value="EnhancedFormHandlers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="websocket-layer" vertex="1">
+          <mxGeometry x="170" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Handler Methods -->
+        <mxCell id="handler-methods" value="Methods:&#xa;• handleChatWithFormContext()&#xa;• handleFormStatusQuery()&#xa;• handleFormManipulation()&#xa;• handleFormSave()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" parent="websocket-layer" vertex="1">
+          <mxGeometry x="350" y="40" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Agent Layer -->
+        <mxCell id="agent-layer" value="Agent Layer" style="swimlane;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="40" y="470" width="770" height="200" as="geometry" />
+        </mxCell>
+        
+        <!-- Form Context Agent -->
+        <mxCell id="form-context-agent" value="FormContextAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="agent-layer" vertex="1">
+          <mxGeometry x="20" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Context Agent Methods -->
+        <mxCell id="context-methods" value="• analyzeFormContext()&#xa;• validateForm()&#xa;• checkFormReadiness()&#xa;• generateSuggestions()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" parent="agent-layer" vertex="1">
+          <mxGeometry x="20" y="110" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Enhanced Chat Assistant -->
+        <mxCell id="enhanced-chat" value="EnhancedChatAssistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="agent-layer" vertex="1">
+          <mxGeometry x="200" y="40" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Chat Assistant Methods -->
+        <mxCell id="chat-methods" value="• handleChatMessage()&#xa;• processFormCommands()&#xa;• handleFormQuery()&#xa;• classifyFormQuery()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;" parent="agent-layer" vertex="1">
+          <mxGeometry x="200" y="110" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Base Agents -->
+        <mxCell id="base-agents" value="Base Agents" style="swimlane;fillColor=#fff2cc;strokeColor=#d6b656;" parent="agent-layer" vertex="1">
+          <mxGeometry x="390" y="30" width="360" height="150" as="geometry" />
+        </mxCell>
+        
+        <!-- Chat Assistant Agent -->
+        <mxCell id="chat-assistant" value="ChatAssistantAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="base-agents" vertex="1">
+          <mxGeometry x="20" y="40" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Form Builder Agent -->
+        <mxCell id="form-builder" value="FormBuilderAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="base-agents" vertex="1">
+          <mxGeometry x="170" y="40" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- AI Service -->
+        <mxCell id="ai-service" value="AI Service&#xa;(OpenAI/Azure)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="base-agents" vertex="1">
+          <mxGeometry x="95" y="90" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Layer -->
+        <mxCell id="data-layer" value="Data Layer" style="swimlane;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+          <mxGeometry x="40" y="690" width="770" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- MongoDB -->
+        <mxCell id="mongodb" value="MongoDB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="data-layer" vertex="1">
+          <mxGeometry x="20" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Form Model -->
+        <mxCell id="form-model" value="Form Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="data-layer" vertex="1">
+          <mxGeometry x="150" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Submission Model -->
+        <mxCell id="submission-model" value="Submission Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="data-layer" vertex="1">
+          <mxGeometry x="280" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Conversation History -->
+        <mxCell id="conversation-history" value="Conversation History" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="data-layer" vertex="1">
+          <mxGeometry x="410" y="40" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="websocket-client" target="server-websocket" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="server-websocket" target="enhanced-handlers" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="enhanced-handlers" target="enhanced-chat" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="enhanced-chat" target="form-context-agent" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="base-agents" target="data-layer" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Key Features -->
+        <mxCell id="features" value="Key Features:&#xa;• Real-time form context analysis&#xa;• Natural language form manipulation&#xa;• Intelligent validation and suggestions&#xa;• Confirmation dialogs for critical actions&#xa;• Seamless WebSocket integration" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="40" y="830" width="300" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Flow -->
+        <mxCell id="dataflow" value="Data Flow:&#xa;1. User sends chat with form context&#xa;2. WebSocket forwards to handlers&#xa;3. Enhanced assistant analyzes context&#xa;4. AI generates response with actions&#xa;5. Actions executed on frontend&#xa;6. Form state updated in real-time" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="510" y="830" width="300" height="100" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

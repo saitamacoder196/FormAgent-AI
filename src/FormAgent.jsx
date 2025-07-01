@@ -416,10 +416,57 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
         const botResponse = {
           id: Date.now(),
           type: 'bot',
-          content: data.response + `\n\n*Via WebSocket (${data.service})*`,
-          service: data.service
+          content: data.response,
+          service: data.service,
+          formContext: data.formContext
         };
         setMessages(prev => [...prev, botResponse]);
+        
+        // Show form context info if available
+        if (data.formContext && data.metadata?.formReadiness) {
+          console.log('Form readiness:', data.metadata.formReadiness);
+        }
+      }
+    });
+
+    // Handle form actions from enhanced assistant
+    newSocket.on('form-actions', (data) => {
+      console.log('Form actions received:', data);
+      
+      if (data.actions && data.actions.length > 0) {
+        data.actions.forEach(action => {
+          handleFormAction(action);
+        });
+      }
+    });
+
+    // Handle form save confirmation
+    newSocket.on('form-save-confirmation', (data) => {
+      console.log('Form save confirmation:', data);
+      
+      if (data.requiresConfirmation) {
+        const confirmSave = window.confirm(data.message + '\n\n' + 
+          (data.warnings && data.warnings.length > 0 ? 
+            'Cảnh báo: ' + data.warnings.join(', ') : ''));
+        
+        if (confirmSave) {
+          newSocket.emit('form-save', {
+            formData: formData,
+            confirmSave: true
+          });
+        }
+      } else {
+        alert(data.message);
+      }
+    });
+
+    // Handle form save ready
+    newSocket.on('form-save-ready', async (data) => {
+      console.log('Form save ready:', data);
+      
+      if (data.success) {
+        // Call the existing save function
+        await saveFormToDatabase();
       }
     });
 
@@ -1011,12 +1058,16 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
       }
         }
     } else {
-      // Handle regular chat message via WebSocket
+      // Handle regular chat message via WebSocket with form context
       if (socket && socket.connected) {
-        socket.emit('chat-message', {
+        socket.emit('chat-message-with-context', {
           message: currentInput,
-          conversation_id: `chat_${Date.now()}`,
-          context: { language: 'Vietnamese' },
+          conversation_id: clientId,
+          context: { 
+            language: 'Vietnamese',
+            previewMode: previewMode
+          },
+          formData: formData,
           useCrewAI: true
         });
         
@@ -1213,6 +1264,61 @@ ${result.warnings?.length > 0 ? '⚠️ Cảnh báo: ' + result.warnings.join(',
       ...formData,
       fields: [...formData.fields, newField]
     });
+  };
+
+  // Handle form actions from AI assistant
+  const handleFormAction = (action) => {
+    console.log('Handling form action:', action);
+    
+    switch (action.type) {
+      case 'updateField':
+        const fieldIndex = formData.fields.findIndex(f => f.id === action.fieldId);
+        if (fieldIndex !== -1) {
+          const updatedField = {
+            ...formData.fields[fieldIndex],
+            [action.property]: action.value
+          };
+          updateField(fieldIndex, updatedField);
+        }
+        break;
+        
+      case 'deleteField':
+        const deleteIndex = formData.fields.findIndex(f => f.id === action.fieldId);
+        if (deleteIndex !== -1) {
+          deleteField(deleteIndex);
+        }
+        break;
+        
+      case 'addField':
+        const newField = {
+          id: 'field_' + Date.now(),
+          label: action.label,
+          type: action.fieldType,
+          required: action.required,
+          placeholder: ''
+        };
+        setFormData({
+          ...formData,
+          fields: [...formData.fields, newField]
+        });
+        break;
+        
+      case 'updateSetting':
+        setFormData({
+          ...formData,
+          [action.setting]: action.value
+        });
+        break;
+        
+      case 'saveForm':
+        if (action.confirm) {
+          saveFormToDatabase();
+        }
+        break;
+        
+      default:
+        console.warn('Unknown form action:', action.type);
+    }
   };
 
   const renderField = (field) => {

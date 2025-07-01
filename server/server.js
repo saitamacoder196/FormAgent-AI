@@ -17,6 +17,7 @@ import formsRoutes from './routes/formsRoutes.js';
 import { conversationHistoryService } from './services/conversationHistoryService.js';
 import { personalityConfig, getContextualGreeting } from './config/personality.js';
 import { guardrailsEngine } from './config/guardrails.js';
+import EnhancedFormHandlers from './websocket/enhancedFormHandlers.js';
 
 dotenv.config();
 
@@ -515,6 +516,38 @@ io.on('connection', (socket) => {
         timestamp: new Date().toISOString()
       });
     }
+  });
+
+  // Initialize enhanced form handlers
+  const enhancedHandlers = new EnhancedFormHandlers({
+    provider: process.env.AI_PROVIDER || 'openai',
+    apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
+    endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+    deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+    apiVersion: process.env.AZURE_OPENAI_API_VERSION,
+    model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+    temperature: 0.7,
+    maxTokens: 2000
+  });
+
+  // Handle enhanced chat with form context
+  socket.on('chat-message-with-context', async (data) => {
+    await enhancedHandlers.handleChatWithFormContext(socket, data);
+  });
+
+  // Handle form status queries
+  socket.on('form-status', async (data) => {
+    await enhancedHandlers.handleFormStatusQuery(socket, data);
+  });
+
+  // Handle form manipulation
+  socket.on('form-manipulate', async (data) => {
+    await enhancedHandlers.handleFormManipulation(socket, data);
+  });
+
+  // Handle form save requests
+  socket.on('form-save', async (data) => {
+    await enhancedHandlers.handleFormSave(socket, data);
   });
 });
 
