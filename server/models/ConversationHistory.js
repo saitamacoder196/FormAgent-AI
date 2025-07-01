@@ -50,7 +50,37 @@ const ConversationHistorySchema = new mongoose.Schema({
   
   // Short-term memory (recent messages)
   shortTermMemory: {
-    messages: [MessageSchema],
+    messages: [{
+      role: {
+        type: String,
+        enum: ['user', 'assistant', 'system'],
+        required: true
+      },
+      content: {
+        type: String,
+        required: true,
+        maxlength: 10000
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      metadata: {
+        type: Object,
+        default: {}
+      },
+      tokens: {
+        type: Number,
+        default: 0
+      },
+      messageId: {
+        type: String,
+        required: false, // Changed to false to avoid null issues
+        default: function() {
+          return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        }
+      }
+    }],
     maxMessages: {
       type: Number,
       default: 20
@@ -155,7 +185,9 @@ const ConversationHistorySchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
-  collection: 'conversationhistories'
+  collection: 'conversationhistories',
+  // Disable automatic index creation to prevent issues
+  autoIndex: false
 });
 
 // Indexes for performance
@@ -172,10 +204,14 @@ ConversationHistorySchema.methods.addMessage = async function(message) {
   const counter = this.shortTermMemory.messages.length;
   const messageId = `msg_${timestamp}_${random}_${counter}`;
   
+  // Ensure message has all required fields
   const newMessage = {
-    ...message,
-    messageId: messageId || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
-    timestamp: new Date()
+    role: message.role || 'user',
+    content: message.content || '',
+    timestamp: message.timestamp || new Date(),
+    metadata: message.metadata || {},
+    tokens: message.tokens || 0,
+    messageId: messageId // Always use our generated messageId
   };
 
   // Add to short-term memory
