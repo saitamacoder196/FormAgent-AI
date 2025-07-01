@@ -88,28 +88,49 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
       const recentHistory = memory.slice(-10);
       messages.push(...recentHistory);
 
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: messages,
-        temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
-      });
+      let response;
+      let service = 'enhanced-assistant';
+      
+      try {
+        const completion = await this.client.chat.completions.create({
+          model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
+          messages: messages,
+          temperature: this.config.temperature,
+          max_tokens: this.config.maxTokens
+        });
 
-      const response = completion.choices[0].message.content;
+        response = completion.choices[0].message.content;
+        
+        logger.info('Chat message processed successfully with form context', { 
+          conversationId,
+          responseLength: response?.length,
+          hasFormData: !!formData
+        });
+      } catch (aiError) {
+        logger.logError(aiError, { 
+          context: 'EnhancedChatAssistant.handleChatMessage - AI API Error',
+          conversationId,
+          hasFormData: !!formData
+        });
+        
+        // Fallback to context-aware response without AI
+        if (formData && formContextInfo) {
+          response = this.generateFormContextFallbackResponse(message, formContextInfo);
+          service = 'context-fallback';
+        } else {
+          response = this.generateGeneralFallbackResponse(message, context);
+          service = 'general-fallback';
+        }
+      }
       
       // Add assistant response to memory
       this.addToConversationMemory(conversationId, 'assistant', response);
-
-      logger.info('Chat message processed successfully with form context', { 
-        conversationId,
-        responseLength: response?.length,
-        hasFormData: !!formData
-      });
 
       const baseResponse = {
         response: response,
         conversationId,
         timestamp: new Date().toISOString(),
+        service: service,
         context: {
           messageCount: memory.length,
           lastActivity: new Date().toISOString()
@@ -490,6 +511,107 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
     response += '• Sử dụng nút Preview để xem form như người dùng\n';
     
     return response;
+  }
+
+  /**
+   * Generate fallback response when AI is unavailable but we have form context
+   */
+  generateFormContextFallbackResponse(message, formContext) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Status queries
+    if (lowerMessage.includes('trạng thái') || lowerMessage.includes('status') || 
+        lowerMessage.includes('thế nào') || lowerMessage.includes('như nào')) {
+      return this.formContextAgent.generateContextResponse(formContext);
+    }
+    
+    // Validation queries
+    if (lowerMessage.includes('lỗi') || lowerMessage.includes('kiểm tra') || 
+        lowerMessage.includes('validation')) {
+      return this.generateValidationResponse(formContext.validation);
+    }
+    
+    // Save queries
+    if (lowerMessage.includes('lưu') || lowerMessage.includes('save')) {
+      return this.generateReadinessResponse(formContext.readiness);
+    }
+    
+    // Field count or general info
+    if (lowerMessage.includes('field') || lowerMessage.includes('trường') || 
+        lowerMessage.includes('bao nhiêu')) {
+      const { overview, fields } = formContext;
+      return `📋 Form "${overview.title}" hiện có ${overview.fieldCount} trường thông tin:\n\n` +
+             fields.fields.map((f, i) => `${i + 1}. ${f.label} (${f.type})${f.required ? ' *' : ''}`).join('\n') +
+             `\n\n${overview.requiredFieldCount} trường bắt buộc, ${fields.optionalFields} trường tùy chọn.`;
+    }
+    
+    // General help
+    return `🤖 Tôi đang gặp vấn đề với AI service, nhưng vẫn có thể giúp bạn với form hiện tại!\n\n` +
+           `📋 **Form của bạn:**\n` +
+           `• Tiêu đề: ${formContext.overview.title}\n` +
+           `• Số trường: ${formContext.overview.fieldCount}\n` +
+           `• Trạng thái: ${formContext.validation.isValid ? 'Hợp lệ ✅' : 'Có lỗi ❌'}\n` +
+           `• Sẵn sàng lưu: ${formContext.readiness.canSave ? 'Có ✅' : 'Chưa ❌'}\n\n` +
+           `Bạn có thể hỏi tôi về:\n` +
+           `• Trạng thái form\n` +
+           `• Thông tin các trường\n` +
+           `• Kiểm tra lỗi\n` +
+           `• Tính sẵn sàng để lưu`;
+  }
+
+  /**
+   * Generate general fallback response when AI is unavailable
+   */
+  generateGeneralFallbackResponse(message, context) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Greeting
+    if (lowerMessage.includes('xin chào') || lowerMessage.includes('hello') || 
+        lowerMessage.includes('hi') || lowerMessage.includes('chào')) {
+      return `Xin chào! 👋 Tôi là FormAgent AI.\n\n` +
+             `Hiện tại tôi đang gặp vấn đề kết nối với AI service, nhưng vẫn có thể giúp bạn:\n\n` +
+             `📝 **Tạo form:** Mô tả form bạn muốn tạo\n` +
+             `💬 **Trò chuyện:** Hỏi về tính năng FormAgent\n` +
+             `🔧 **Hỗ trợ:** Giải đáp thắc mắc cơ bản\n\n` +
+             `Bạn muốn làm gì?`;
+    }
+    
+    // Form creation
+    if (lowerMessage.includes('tạo form') || lowerMessage.includes('tạo biểu mẫu') ||
+        lowerMessage.includes('form mới')) {
+      return `📝 Để tạo form mới, hãy mô tả chi tiết form bạn muốn tạo.\n\n` +
+             `**Ví dụ:**\n` +
+             `• "Tạo form đăng ký khóa học gồm họ tên, email, số điện thoại"\n` +
+             `• "Tạo form khảo sát khách hàng"\n` +
+             `• "Tạo form liên hệ đơn giản"\n\n` +
+             `Hiện tại AI service gặp vấn đề, nhưng bạn vẫn có thể tạo form với template có sẵn.`;
+    }
+    
+    // Help
+    if (lowerMessage.includes('giúp') || lowerMessage.includes('help') ||
+        lowerMessage.includes('hướng dẫn')) {
+      return `🤖 **FormAgent AI - Trợ lý tạo form thông minh**\n\n` +
+             `**Tính năng chính:**\n` +
+             `📝 Tạo form tự động từ mô tả\n` +
+             `🎯 Tối ưu hóa form cho UX tốt nhất\n` +
+             `✅ Validation thông minh\n` +
+             `💾 Lưu và chia sẻ form\n\n` +
+             `**Cách sử dụng:**\n` +
+             `1. Mô tả form bạn muốn tạo\n` +
+             `2. AI sẽ tạo form phù hợp\n` +
+             `3. Chỉnh sửa nếu cần\n` +
+             `4. Lưu và sử dụng\n\n` +
+             `*Lưu ý: AI service hiện đang gặp vấn đề, một số tính năng có thể bị hạn chế.*`;
+    }
+    
+    // Default response
+    return `🤖 Xin chào! Tôi là FormAgent AI.\n\n` +
+           `Hiện tại tôi gặp vấn đề kết nối với AI service, nhưng vẫn có thể hỗ trợ bạn với các tính năng cơ bản.\n\n` +
+           `Bạn có thể:\n` +
+           `• Mô tả form muốn tạo\n` +
+           `• Hỏi về tính năng FormAgent\n` +
+           `• Tìm hiểu cách sử dụng\n\n` +
+           `Tôi sẽ cố gắng hỗ trợ bạn tốt nhất có thể! 😊`;
   }
 }
 

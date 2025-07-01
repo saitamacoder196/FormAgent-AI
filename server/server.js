@@ -14,10 +14,12 @@ import Form from './models/Form.js';
 import Submission from './models/Submission.js';
 import aiRoutes from './routes/aiRoutes.js';
 import formsRoutes from './routes/formsRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
 import { conversationHistoryService } from './services/conversationHistoryService.js';
 import { personalityConfig, getContextualGreeting } from './config/personality.js';
 import { guardrailsEngine } from './config/guardrails.js';
 import EnhancedFormHandlers from './websocket/enhancedFormHandlers.js';
+import configValidator from './utils/configValidator.js';
 
 dotenv.config();
 
@@ -518,8 +520,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Initialize enhanced form handlers
-  const enhancedHandlers = new EnhancedFormHandlers({
+  // Validate and initialize enhanced form handlers
+  const aiConfig = {
     provider: process.env.AI_PROVIDER || 'openai',
     apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
     endpoint: process.env.AZURE_OPENAI_ENDPOINT,
@@ -528,7 +530,24 @@ io.on('connection', (socket) => {
     model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
     temperature: 0.7,
     maxTokens: 2000
-  });
+  };
+
+  // Log configuration status for debugging
+  configValidator.logConfigStatus(aiConfig);
+
+  // Test configuration
+  configValidator.testAIConfig(aiConfig)
+    .then(testResult => {
+      configValidator.logConfigStatus(aiConfig, testResult);
+      if (!testResult.success) {
+        console.warn('⚠️ AI service may not work properly. Using fallback responses.');
+      }
+    })
+    .catch(error => {
+      console.error('Failed to test AI configuration:', error);
+    });
+
+  const enhancedHandlers = new EnhancedFormHandlers(aiConfig);
 
   // Handle enhanced chat with form context
   socket.on('chat-message-with-context', async (data) => {
@@ -791,25 +810,7 @@ app.post('/api/process-form', async (req, res) => {
 // Routes
 app.use('/api/ai', aiRoutes);
 app.use('/api/forms-enhanced', formsRoutes);
-app.get('/api/health', async (req, res) => {
-  try {
-    // Check database connection
-    const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
-    
-    res.json({ 
-      status: 'OK', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      database: dbStatus,
-      version: process.env.npm_package_version || '1.0.0'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      message: error.message 
-    });
-  }
-});
+app.use('/api', healthRoutes);
 
 // Forms API endpoints
 app.get('/api/forms', async (req, res) => {

@@ -37,7 +37,21 @@ class EnhancedFormHandlers {
         message,
         conversation_id,
         enhancedContext
-      );
+      ).catch(error => {
+        logger.logError(error, { context: 'EnhancedFormHandlers.handleChatWithFormContext - Assistant Error' });
+        
+        // Return fallback response if assistant fails
+        return {
+          response: `🤖 Xin lỗi, tôi đang gặp vấn đề kỹ thuật. ${formData ? 
+            'Tuy nhiên, tôi vẫn có thể giúp bạn với form hiện tại. Hãy hỏi tôi về trạng thái form hoặc các trường trong form.' : 
+            'Vui lòng thử lại sau hoặc liên hệ hỗ trợ.'}`,
+          conversationId: conversation_id,
+          timestamp: new Date().toISOString(),
+          service: 'error-fallback',
+          formActions: [],
+          formContext: formData ? this.formContextAgent.analyzeFormContext(formData) : null
+        };
+      });
 
       // Handle form actions if any
       if (response.formActions && response.formActions.length > 0) {
