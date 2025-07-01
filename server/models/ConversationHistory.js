@@ -26,8 +26,7 @@ const MessageSchema = new mongoose.Schema({
   },
   messageId: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   }
 });
 
@@ -167,11 +166,15 @@ ConversationHistorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Instance methods
 ConversationHistorySchema.methods.addMessage = async function(message) {
-  const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Ensure unique messageId with timestamp + random + counter
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 11);
+  const counter = this.shortTermMemory.messages.length;
+  const messageId = `msg_${timestamp}_${random}_${counter}`;
   
   const newMessage = {
     ...message,
-    messageId,
+    messageId: messageId || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
     timestamp: new Date()
   };
 

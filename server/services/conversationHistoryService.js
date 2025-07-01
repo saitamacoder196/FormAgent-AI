@@ -22,20 +22,53 @@ class ConversationHistoryService {
       }
 
       // Find in database
-      let conversation = await ConversationHistory.findByConversationId(conversationId);
-      
-      if (!conversation) {
-        // Create new conversation
-        conversation = await ConversationHistory.createConversation(
-          conversationId, 
-          userId, 
-          sessionId || `session_${Date.now()}`
-        );
+      let conversation;
+      try {
+        conversation = await ConversationHistory.findByConversationId(conversationId);
         
-        logger.info(`New conversation created: ${conversationId}`);
-      } else {
-        // Load existing conversation
-        logger.info(`Conversation loaded: ${conversationId}, messages: ${conversation.metadata.totalMessages}`);
+        if (!conversation) {
+          // Create new conversation
+          conversation = await ConversationHistory.createConversation(
+            conversationId, 
+            userId, 
+            sessionId || `session_${Date.now()}`
+          );
+          
+          logger.info(`New conversation created: ${conversationId}`);
+        } else {
+          // Load existing conversation
+          logger.info(`Conversation loaded: ${conversationId}, messages: ${conversation.metadata.totalMessages}`);
+        }
+      } catch (dbError) {
+        if (dbError.message?.includes('buffering timed out')) {
+          // MongoDB not available, create in-memory conversation
+          logger.warn('MongoDB not available, creating in-memory conversation');
+          conversation = {
+            conversationId,
+            userId,
+            sessionId: sessionId || `session_${Date.now()}`,
+            shortTermMemory: { messages: [], maxMessages: 20 },
+            longTermMemory: { keyTopics: [], userPreferences: { previousForms: [] } },
+            metadata: { totalMessages: 0, totalTokens: 0, userType: 'firstTime' },
+            addMessage: async function(msg) { 
+              this.shortTermMemory.messages.push(msg); 
+              this.metadata.totalMessages++;
+              return msg.messageId || 'inmem_' + Date.now();
+            },
+            save: async function() { return this; },
+            getContext: function() { 
+              return {
+                shortTerm: this.shortTermMemory.messages,
+                longTerm: '',
+                userPreferences: this.longTermMemory.userPreferences,
+                keyTopics: this.longTermMemory.keyTopics,
+                userType: this.metadata.userType
+              };
+            }
+          };
+        } else {
+          throw dbError;
+        }
       }
 
       // Cache the conversation
@@ -79,10 +112,29 @@ class ConversationHistoryService {
       };
 
       // Add message to conversation
-      const messageId = await conversation.addMessage(messageWithTokens);
-      
-      // Save to database
-      await conversation.save();
+      let messageId;
+      try {
+        messageId = await conversation.addMessage(messageWithTokens);
+        
+        // Save to database
+        await conversation.save();
+      } catch (dbError) {
+        // Handle MongoDB errors gracefully
+        if (dbError.code === 11000 || dbError.message?.includes('duplicate key')) {
+          logger.warn(`Duplicate message ID, generating new one for conversation ${conversationId}`);
+          // Try again with a more unique ID
+          messageWithTokens.messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 20)}`;
+          messageId = await conversation.addMessage(messageWithTokens);
+          await conversation.save();
+        } else if (dbError.message?.includes('buffering timed out')) {
+          // MongoDB not available, use in-memory only
+          logger.warn('MongoDB not available, using in-memory conversation only');
+          messageId = `inmem_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          // Don't try to save to DB
+        } else {
+          throw dbError;
+        }
+      }
       
       // Update cache
       if (this.activeConversations.has(conversationId)) {
