@@ -1071,7 +1071,8 @@ Bạn có thể chỉnh sửa form bằng cách click vào các trường hoặc
         }
       };
 
-      const response = await fetch(`http://localhost:5001/api/forms-enhanced/${formId}/submit`, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/forms-enhanced/${formId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1135,7 +1136,8 @@ Cảm ơn bạn đã sử dụng FormAgent! 🙏`;
         userId: 'anonymous' // Could be replaced with actual user ID
       };
 
-      const response = await fetch('http://localhost:5001/api/forms-enhanced/save', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/forms-enhanced/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
