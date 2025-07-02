@@ -14,13 +14,13 @@ class EnhancedChatAssistant extends ChatAssistantAgent {
    * Handle chat message with form context awareness
    */
   async handleChatMessage(message, conversationId, context = {}) {
-    try {
-      // Extract form context if provided
-      const { formData } = context;
-      let enhancedSystemPrompt = '';
-      let formContextInfo = null;
+    // Extract form context if provided (moved outside try-catch for fallback access)
+    const { formData } = context;
+    let enhancedSystemPrompt = '';
+    let formContextInfo = null;
 
-      if (formData) {
+    if (formData) {
+      try {
         // Analyze current form state
         formContextInfo = this.formContextAgent.analyzeFormContext(formData);
         
@@ -43,7 +43,13 @@ When the user asks about form manipulation:
 - To add a field: Format like "ADD_FIELD:{type}:{label}:{required}"
 - To save form: First check readiness, then format like "SAVE_FORM:confirm"
 - To update settings: Format like "UPDATE_SETTING:{setting}:{value}"`;
+      } catch (contextError) {
+        logger.logError(contextError, { context: 'EnhancedChatAssistant.analyzeFormContext' });
+        // Continue without form context if analysis fails
       }
+    }
+
+    try {
 
       // Build messages with enhanced context
       const memory = this.getConversationMemory(conversationId);
@@ -151,8 +157,32 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
 
       return baseResponse;
     } catch (error) {
-      logger.logError(error, { context: 'EnhancedChatAssistant.handleChatMessage' });
-      return super.handleChatMessage(message, conversationId, context);
+      logger.logError(error, { context: 'EnhancedChatAssistant.handleChatMessage - Main Handler' });
+      
+      // Return comprehensive fallback response
+      let fallbackResponse;
+      if (formData && formContextInfo) {
+        fallbackResponse = this.generateFormContextFallbackResponse(message, formContextInfo);
+      } else {
+        fallbackResponse = this.generateGeneralFallbackResponse(message, context);
+      }
+      
+      // Add to conversation memory
+      this.addToConversationMemory(conversationId, 'user', message);
+      this.addToConversationMemory(conversationId, 'assistant', fallbackResponse);
+      
+      return {
+        response: fallbackResponse,
+        conversationId,
+        timestamp: new Date().toISOString(),
+        service: 'main-error-fallback',
+        formActions: [],
+        formContext: formData ? this.formContextAgent.analyzeFormContext(formData) : null,
+        context: {
+          messageCount: this.getConversationMemory(conversationId).length,
+          lastActivity: new Date().toISOString()
+        }
+      };
     }
   }
 
