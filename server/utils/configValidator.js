@@ -36,13 +36,20 @@ export function validateAIConfig(config) {
       validation.info.push(`Endpoint: ${config.endpoint}`);
       
       // Check endpoint format
-      if (!config.endpoint.includes('openai.azure.com')) {
-        validation.warnings.push('Endpoint does not appear to be Azure OpenAI format');
+      if (!config.endpoint.includes('.openai.azure.com')) {
+        validation.warnings.push('Endpoint does not appear to be Azure OpenAI format (should contain .openai.azure.com)');
       }
       
-      // Check if endpoint ends with slash
+      // Check if endpoint ends with slash and fix if needed
       if (!config.endpoint.endsWith('/')) {
-        validation.warnings.push('Endpoint should end with a slash (/)');
+        validation.info.push('Adding trailing slash to endpoint');
+        config.endpoint = config.endpoint + '/';
+      }
+      
+      // Check protocol
+      if (!config.endpoint.startsWith('https://')) {
+        validation.errors.push('Endpoint must use HTTPS protocol');
+        validation.isValid = false;
       }
     }
 

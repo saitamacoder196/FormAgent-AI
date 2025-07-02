@@ -535,38 +535,75 @@ io.on('connection', (socket) => {
   // Log configuration status for debugging
   configValidator.logConfigStatus(aiConfig);
 
-  // Test configuration
-  configValidator.testAIConfig(aiConfig)
-    .then(testResult => {
-      configValidator.logConfigStatus(aiConfig, testResult);
-      if (!testResult.success) {
-        console.warn('⚠️ AI service may not work properly. Using fallback responses.');
-      }
-    })
-    .catch(error => {
-      console.error('Failed to test AI configuration:', error);
-    });
+  // Skip AI test on startup to prevent blocking - test only when needed
+  const validation = configValidator.validateAIConfig(aiConfig);
+  if (!validation.isValid) {
+    console.warn('⚠️ AI configuration has issues. Using fallback responses.');
+    console.warn('Issues:', validation.errors.join(', '));
+  } else {
+    console.log('✅ AI configuration appears valid');
+  }
 
   const enhancedHandlers = new EnhancedFormHandlers(aiConfig);
 
   // Handle enhanced chat with form context
   socket.on('chat-message-with-context', async (data) => {
-    await enhancedHandlers.handleChatWithFormContext(socket, data);
+    try {
+      await enhancedHandlers.handleChatWithFormContext(socket, data);
+    } catch (error) {
+      console.error('Error in chat-message-with-context handler:', error);
+      
+      // Send fallback response directly
+      socket.emit('chat-response', {
+        success: true,
+        response: '🤖 Xin lỗi, tôi đang gặp vấn đề kỹ thuật. Vui lòng thử lại sau hoặc kiểm tra cấu hình AI service.',
+        conversation_id: data.conversation_id || 'unknown',
+        service: 'emergency-fallback',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Handle form status queries
   socket.on('form-status', async (data) => {
-    await enhancedHandlers.handleFormStatusQuery(socket, data);
+    try {
+      await enhancedHandlers.handleFormStatusQuery(socket, data);
+    } catch (error) {
+      console.error('Error in form-status handler:', error);
+      socket.emit('form-status-error', {
+        success: false,
+        error: 'Unable to process form status',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Handle form manipulation
   socket.on('form-manipulate', async (data) => {
-    await enhancedHandlers.handleFormManipulation(socket, data);
+    try {
+      await enhancedHandlers.handleFormManipulation(socket, data);
+    } catch (error) {
+      console.error('Error in form-manipulate handler:', error);
+      socket.emit('form-manipulation-error', {
+        success: false,
+        error: 'Unable to manipulate form',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Handle form save requests
   socket.on('form-save', async (data) => {
-    await enhancedHandlers.handleFormSave(socket, data);
+    try {
+      await enhancedHandlers.handleFormSave(socket, data);
+    } catch (error) {
+      console.error('Error in form-save handler:', error);
+      socket.emit('form-save-error', {
+        success: false,
+        error: 'Unable to save form',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 });
 
