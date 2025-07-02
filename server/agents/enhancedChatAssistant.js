@@ -98,6 +98,16 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
       let service = 'enhanced-assistant';
       
       try {
+        // Log detailed configuration for debugging
+        logger.info('Azure OpenAI Request Configuration:', {
+          provider: this.config.provider,
+          endpoint: this.config.endpoint,
+          apiVersion: this.config.apiVersion,
+          deployment: this.config.deployment,
+          model: this.config.model,
+          requestModel: this.config.provider === 'azure' ? this.config.deployment : this.config.model
+        });
+
         const completion = await this.client.chat.completions.create({
           model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
           messages: messages,
@@ -116,7 +126,20 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
         logger.logError(aiError, { 
           context: 'EnhancedChatAssistant.handleChatMessage - AI API Error',
           conversationId,
-          hasFormData: !!formData
+          hasFormData: !!formData,
+          configDetails: {
+            provider: this.config.provider,
+            endpoint: this.config.endpoint,
+            apiVersion: this.config.apiVersion,
+            deployment: this.config.deployment,
+            model: this.config.model
+          },
+          errorDetails: {
+            status: aiError.status,
+            message: aiError.message,
+            type: aiError.type,
+            code: aiError.code
+          }
         });
         
         // Fallback to context-aware response without AI

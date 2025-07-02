@@ -19,12 +19,23 @@ class ChatAssistantAgent {
 
   initializeClient() {
     if (this.config.provider === 'azure') {
+      logger.info('Initializing Azure OpenAI Client:', {
+        endpoint: this.config.endpoint,
+        apiVersion: this.config.apiVersion,
+        deployment: this.config.deployment,
+        hasApiKey: !!this.config.apiKey
+      });
+      
       return new AzureOpenAI({
         apiKey: this.config.apiKey,
         endpoint: this.config.endpoint,
         apiVersion: this.config.apiVersion
       });
     } else {
+      logger.info('Initializing OpenAI Client:', {
+        hasApiKey: !!this.config.apiKey
+      });
+      
       return new OpenAI({
         apiKey: this.config.apiKey
       });

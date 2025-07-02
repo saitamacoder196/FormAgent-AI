@@ -8,9 +8,9 @@ console.log('🔍 FormAgent AI Configuration Debug\n');
 
 const aiConfig = {
   provider: process.env.AI_PROVIDER || 'openai',
-  apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
+  apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY,
   endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-  deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+  deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
   apiVersion: process.env.AZURE_OPENAI_API_VERSION,
   model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
 };
@@ -18,9 +18,9 @@ const aiConfig = {
 console.log('Environment Variables:');
 console.log('AI_PROVIDER:', process.env.AI_PROVIDER || 'not set');
 console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '***set***' : 'not set');
-console.log('AZURE_OPENAI_KEY:', process.env.AZURE_OPENAI_KEY ? '***set***' : 'not set');
+console.log('AZURE_OPENAI_API_KEY:', process.env.AZURE_OPENAI_API_KEY ? '***set***' : 'not set');
 console.log('AZURE_OPENAI_ENDPOINT:', process.env.AZURE_OPENAI_ENDPOINT || 'not set');
-console.log('AZURE_OPENAI_DEPLOYMENT:', process.env.AZURE_OPENAI_DEPLOYMENT || 'not set');
+console.log('AZURE_OPENAI_DEPLOYMENT_NAME:', process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'not set');
 console.log('AZURE_OPENAI_API_VERSION:', process.env.AZURE_OPENAI_API_VERSION || 'not set');
 console.log('OPENAI_MODEL:', process.env.OPENAI_MODEL || 'not set');
 
