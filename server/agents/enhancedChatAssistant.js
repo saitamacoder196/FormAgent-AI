@@ -1,13 +1,15 @@
 import ChatAssistantAgent from './chatAssistantAgent.js';
 import FormContextAgent from './formContextAgent.js';
+import SafeAIClient from './safeAIClient.js';
 import logger from '../utils/logger.js';
 
 class EnhancedChatAssistant extends ChatAssistantAgent {
   constructor(config) {
     super(config);
     this.formContextAgent = new FormContextAgent(config);
+    this.safeAIClient = new SafeAIClient(config);
     
-    logger.info('EnhancedChatAssistant initialized with form context support');
+    logger.info('EnhancedChatAssistant initialized with form context support and safe AI client');
   }
 
   /**
@@ -94,63 +96,28 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
       const recentHistory = memory.slice(-10);
       messages.push(...recentHistory);
 
-      let response;
-      let service = 'enhanced-assistant';
-      
-      try {
-        // Log detailed configuration for debugging
-        logger.info('Azure OpenAI Request Configuration:', {
-          provider: this.config.provider,
-          endpoint: this.config.endpoint,
-          apiVersion: this.config.apiVersion,
-          deployment: this.config.deployment,
-          model: this.config.model,
-          requestModel: this.config.provider === 'azure' ? this.config.deployment : this.config.model
-        });
+      // Use SafeAIClient - this will NEVER throw errors
+      const aiResult = await this.safeAIClient.createChatCompletion(messages, {
+        temperature: this.config.temperature,
+        maxTokens: this.config.maxTokens
+      });
 
-        const completion = await this.client.chat.completions.create({
-          model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-          messages: messages,
-          temperature: this.config.temperature,
-          max_tokens: this.config.maxTokens
-        });
+      let response = aiResult.response;
+      let service = aiResult.service;
 
-        response = completion.choices[0].message.content;
-        
-        logger.info('Chat message processed successfully with form context', { 
-          conversationId,
-          responseLength: response?.length,
-          hasFormData: !!formData
-        });
-      } catch (aiError) {
-        logger.logError(aiError, { 
-          context: 'EnhancedChatAssistant.handleChatMessage - AI API Error',
-          conversationId,
-          hasFormData: !!formData,
-          configDetails: {
-            provider: this.config.provider,
-            endpoint: this.config.endpoint,
-            apiVersion: this.config.apiVersion,
-            deployment: this.config.deployment,
-            model: this.config.model
-          },
-          errorDetails: {
-            status: aiError.status,
-            message: aiError.message,
-            type: aiError.type,
-            code: aiError.code
-          }
-        });
-        
-        // Fallback to context-aware response without AI
-        if (formData && formContextInfo) {
-          response = this.generateFormContextFallbackResponse(message, formContextInfo);
-          service = 'context-fallback';
-        } else {
-          response = this.generateGeneralFallbackResponse(message, context);
-          service = 'general-fallback';
-        }
+      // If we got a fallback response and have form context, try to enhance it
+      if (aiResult.fallback && formData && formContextInfo) {
+        response = this.enhanceWithFormContext(response, message, formContextInfo);
+        service = 'enhanced-fallback';
       }
+
+      logger.info('Chat message processed with safe AI client', { 
+        conversationId,
+        responseLength: response?.length,
+        hasFormData: !!formData,
+        service: service,
+        wasFallback: aiResult.fallback
+      });
       
       // Add assistant response to memory
       this.addToConversationMemory(conversationId, 'assistant', response);
@@ -665,6 +632,21 @@ Respond naturally and helpfully in ${context.language || 'Vietnamese'}.`
            `• Hỏi về tính năng FormAgent\n` +
            `• Tìm hiểu cách sử dụng\n\n` +
            `Tôi sẽ cố gắng hỗ trợ bạn tốt nhất có thể! 😊`;
+  }
+
+  /**
+   * Enhance fallback response with form context information
+   */
+  enhanceWithFormContext(fallbackResponse, userMessage, formContext) {
+    const { overview, validation, readiness } = formContext;
+    
+    // Add current form status to the response
+    const formStatus = `\n\n📋 **Form hiện tại:**\n` +
+                      `• ${overview.title} (${overview.fieldCount} trường)\n` +
+                      `• Trạng thái: ${validation.isValid ? 'Hợp lệ ✅' : 'Có lỗi ❌'}\n` +
+                      `• Sẵn sàng lưu: ${readiness.canSave ? 'Có ✅' : 'Chưa ❌'}`;
+    
+    return fallbackResponse + formStatus;
   }
 }
 
