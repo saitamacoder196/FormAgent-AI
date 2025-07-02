@@ -35,9 +35,19 @@ export function validateAIConfig(config) {
     } else {
       validation.info.push(`Endpoint: ${config.endpoint}`);
       
-      // Check endpoint format
-      if (!config.endpoint.includes('.openai.azure.com')) {
-        validation.warnings.push('Endpoint does not appear to be Azure OpenAI format (should contain .openai.azure.com)');
+      // Check endpoint format - support both new and old Azure formats
+      if (!config.endpoint.includes('.openai.azure.com') && 
+          !config.endpoint.includes('.api.cognitive.microsoft.com')) {
+        validation.warnings.push('Endpoint format not recognized. Expected .openai.azure.com or .api.cognitive.microsoft.com');
+      }
+      
+      // For Cognitive Services endpoints, ensure /openai/ path is included
+      if (config.endpoint.includes('.api.cognitive.microsoft.com') && 
+          !config.endpoint.includes('/openai')) {
+        validation.info.push('Adding /openai to Cognitive Services endpoint');
+        // Remove trailing slash first if exists
+        const baseEndpoint = config.endpoint.replace(/\/$/, '');
+        config.endpoint = baseEndpoint + '/openai/';
       }
       
       // Check if endpoint ends with slash and fix if needed

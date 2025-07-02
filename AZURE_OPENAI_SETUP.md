@@ -24,18 +24,39 @@ AZURE_OPENAI_DEPLOYMENT_NAME=YOUR-DEPLOYMENT-NAME
 AZURE_OPENAI_API_VERSION=2024-02-15-preview
 ```
 
-### 3. Common Mistakes
+### 3. Endpoint Formats
 
-❌ **Wrong Endpoint Format:**
-```
-AZURE_OPENAI_ENDPOINT=YOUR-RESOURCE-NAME.openai.azure.com  # Missing https://
-AZURE_OPENAI_ENDPOINT=https://openai.azure.com/  # Generic endpoint
-AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com  # Missing trailing /
-```
+Azure OpenAI supports **two endpoint formats**:
 
-✅ **Correct Endpoint Format:**
+#### Format 1: New Azure OpenAI Format
 ```
 AZURE_OPENAI_ENDPOINT=https://your-resource-name.openai.azure.com/
+```
+
+#### Format 2: Azure Cognitive Services Format
+```
+AZURE_OPENAI_ENDPOINT=https://eastus.api.cognitive.microsoft.com/
+# or
+AZURE_OPENAI_ENDPOINT=https://westus.api.cognitive.microsoft.com/
+# or other regions...
+```
+
+✅ **Correct Examples:**
+```
+# New format
+AZURE_OPENAI_ENDPOINT=https://my-openai.openai.azure.com/
+
+# Cognitive Services format (any region)
+AZURE_OPENAI_ENDPOINT=https://eastus.api.cognitive.microsoft.com/
+AZURE_OPENAI_ENDPOINT=https://westeurope.api.cognitive.microsoft.com/
+AZURE_OPENAI_ENDPOINT=https://japaneast.api.cognitive.microsoft.com/
+```
+
+❌ **Wrong Examples:**
+```
+AZURE_OPENAI_ENDPOINT=eastus.api.cognitive.microsoft.com  # Missing https://
+AZURE_OPENAI_ENDPOINT=https://api.cognitive.microsoft.com/  # Missing region
+AZURE_OPENAI_ENDPOINT=https://eastus.api.cognitive.microsoft.com  # Missing trailing /
 ```
 
 ❌ **Wrong Deployment Name:**

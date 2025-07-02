@@ -66,11 +66,15 @@ if (provider === 'azure') {
     console.log('❌ Deployment name is missing. Set either AZURE_OPENAI_DEPLOYMENT_NAME or AZURE_OPENAI_DEPLOYMENT');
   }
   
-  if (endpoint && !endpoint.includes('openai.azure.com')) {
+  if (endpoint && !endpoint.includes('openai.azure.com') && !endpoint.includes('api.cognitive.microsoft.com')) {
     console.log('⚠️  Endpoint doesn\'t look like Azure OpenAI format');
+    console.log('    Expected: .openai.azure.com or .api.cognitive.microsoft.com');
   }
   if (endpoint && !endpoint.endsWith('/')) {
     console.log('⚠️  Endpoint should end with a slash (/)');
+  }
+  if (endpoint && endpoint.includes('api.cognitive.microsoft.com') && !endpoint.includes('/openai')) {
+    console.log('💡 Cognitive Services endpoint detected - system will auto-add /openai path');
   }
 } else if (provider === 'openai') {
   const apiKey = process.env.OPENAI_API_KEY;
