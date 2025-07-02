@@ -23,10 +23,10 @@ router.get('/health/detailed', async (req, res) => {
     // Get AI configuration
     const aiConfig = {
       provider: process.env.AI_PROVIDER || 'openai',
-      apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
+      apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
       endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION,
+      deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
     };
 
@@ -89,10 +89,10 @@ router.post('/health/test-ai', async (req, res) => {
   try {
     const aiConfig = {
       provider: process.env.AI_PROVIDER || 'openai',
-      apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
+      apiKey: process.env.OPENAI_API_KEY || process.env.AZURE_OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY,
       endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
-      apiVersion: process.env.AZURE_OPENAI_API_VERSION,
+      deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       temperature: 0.7,
       maxTokens: 100

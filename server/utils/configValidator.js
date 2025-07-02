@@ -22,14 +22,14 @@ export function validateAIConfig(config) {
   // Validate based on provider
   if (config.provider === 'azure') {
     // Azure OpenAI validation
-    if (!config.apiKey) {
+    if (!config.apiKey || config.apiKey === 'undefined' || config.apiKey === 'null') {
       validation.errors.push('Azure OpenAI API key not provided');
       validation.isValid = false;
     } else {
       validation.info.push('API key provided');
     }
 
-    if (!config.endpoint) {
+    if (!config.endpoint || config.endpoint === 'undefined' || config.endpoint === 'null') {
       validation.errors.push('Azure OpenAI endpoint not provided');
       validation.isValid = false;
     } else {
@@ -39,9 +39,14 @@ export function validateAIConfig(config) {
       if (!config.endpoint.includes('openai.azure.com')) {
         validation.warnings.push('Endpoint does not appear to be Azure OpenAI format');
       }
+      
+      // Check if endpoint ends with slash
+      if (!config.endpoint.endsWith('/')) {
+        validation.warnings.push('Endpoint should end with a slash (/)');
+      }
     }
 
-    if (!config.deployment) {
+    if (!config.deployment || config.deployment === 'undefined' || config.deployment === 'null') {
       validation.errors.push('Azure OpenAI deployment name not provided');
       validation.isValid = false;
     } else {
@@ -56,7 +61,7 @@ export function validateAIConfig(config) {
 
   } else if (config.provider === 'openai') {
     // OpenAI validation
-    if (!config.apiKey) {
+    if (!config.apiKey || config.apiKey === 'undefined' || config.apiKey === 'null') {
       validation.errors.push('OpenAI API key not provided');
       validation.isValid = false;
     } else {
@@ -64,10 +69,14 @@ export function validateAIConfig(config) {
     }
 
     if (!config.model) {
-      validation.warnings.push('OpenAI model not specified, using default');
+      validation.warnings.push('OpenAI model not specified, using default gpt-3.5-turbo');
+      config.model = 'gpt-3.5-turbo'; // Set default
     } else {
       validation.info.push(`Model: ${config.model}`);
     }
+  } else {
+    validation.errors.push(`Unknown AI provider: ${config.provider}`);
+    validation.isValid = false;
   }
 
   // Common validations
@@ -192,11 +201,15 @@ export function logConfigStatus(config, testResult = null) {
   });
 
   if (validation.errors.length > 0) {
-    logger.error('Configuration errors found:', validation.errors);
+    validation.errors.forEach(error => {
+      logger.error(`Configuration error: ${error}`);
+    });
   }
 
   if (validation.warnings.length > 0) {
-    logger.warn('Configuration warnings:', validation.warnings);
+    validation.warnings.forEach(warning => {
+      logger.warn(`Configuration warning: ${warning}`);
+    });
   }
 
   if (testResult) {
