@@ -1,19 +1,8 @@
 // AI service can be disabled via environment variable
 const AI_DISABLED = process.env.AI_SERVICE_DISABLED === 'true';
 
-// Conditional imports to avoid module errors
-let AzureOpenAI, OpenAI;
-
-if (!AI_DISABLED) {
-  try {
-    // For Azure OpenAI, we use the openai package with Azure configuration
-    const openaiModule = await import('openai');
-    OpenAI = openaiModule.default;
-    AzureOpenAI = openaiModule.AzureOpenAI;
-  } catch (error) {
-    console.warn('AI modules not available:', error.message);
-  }
-}
+// Import SafeAIClient instead of direct OpenAI clients
+import SafeAIClient from '../agents/safeAIClient.js';
 
 class AIService {
   constructor() {
@@ -27,35 +16,28 @@ class AIService {
       return;
     }
     
-    if (this.aiProvider === 'azure') {
-      if (!process.env.AZURE_OPENAI_ENDPOINT || !process.env.AZURE_OPENAI_API_KEY) {
-        console.warn('Azure OpenAI credentials not configured');
-        return;
-      }
+    // Create configuration object for SafeAIClient
+    const config = {
+      provider: this.aiProvider,
+      apiKey: this.aiProvider === 'azure' 
+        ? (process.env.AZURE_OPENAI_API_KEY || process.env.AZURE_OPENAI_KEY)
+        : process.env.OPENAI_API_KEY,
+      endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+      deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
+      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+      maxTokens: parseInt(process.env.AZURE_OPENAI_MAX_TOKENS || process.env.OPENAI_MAX_TOKENS) || 2000,
+      temperature: parseFloat(process.env.AZURE_OPENAI_TEMPERATURE || process.env.OPENAI_TEMPERATURE) || 0.7
+    };
 
-      this.client = new AzureOpenAI({
-        apiKey: process.env.AZURE_OPENAI_API_KEY,
-        endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-        apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
-      });
-      
-      this.deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-      this.maxTokens = parseInt(process.env.AZURE_OPENAI_MAX_TOKENS) || 2000;
-      this.temperature = parseFloat(process.env.AZURE_OPENAI_TEMPERATURE) || 0.7;
-    } else if (this.aiProvider === 'openai') {
-      if (!process.env.OPENAI_API_KEY) {
-        console.warn('OpenAI API key not configured');
-        return;
-      }
-
-      this.client = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-      
-      this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
-      this.maxTokens = parseInt(process.env.OPENAI_MAX_TOKENS) || 2000;
-      this.temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.7;
-    }
+    // Use SafeAIClient instead of direct OpenAI clients
+    this.safeAIClient = new SafeAIClient(config);
+    this.maxTokens = config.maxTokens;
+    this.temperature = config.temperature;
+    
+    // For backward compatibility
+    this.deploymentName = config.deployment;
+    this.model = config.model;
   }
 
   async generateFormFields(description, requirements = {}) {
@@ -167,33 +149,20 @@ class AIService {
   }
 
   async generateCompletion(prompt, maxTokens = null) {
-    if (!this.client) {
+    if (!this.safeAIClient) {
       throw new Error('AI client not initialized');
     }
 
     const tokens = maxTokens || this.maxTokens;
 
-    if (this.aiProvider === 'azure') {
-      const response = await this.client.chat.completions.create({
-        model: this.deploymentName,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: tokens,
-        temperature: this.temperature
-      });
+    const aiResult = await this.safeAIClient.createChatCompletion([
+      { role: 'user', content: prompt }
+    ], {
+      maxTokens: tokens,
+      temperature: this.temperature
+    });
 
-      return response.choices[0]?.message?.content || '';
-    } else if (this.aiProvider === 'openai') {
-      const response = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: tokens,
-        temperature: this.temperature
-      });
-
-      return response.choices[0]?.message?.content || '';
-    }
-
-    throw new Error('Unsupported AI provider');
+    return aiResult.response || '';
   }
 
   buildFormGenerationPrompt(description, requirements) {

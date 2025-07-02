@@ -1,31 +1,16 @@
-import OpenAI from 'openai';
-import { AzureOpenAI } from 'openai';
+import SafeAIClient from './safeAIClient.js';
 import logger from '../utils/logger.js';
 
 class FormBuilderAgent {
   constructor(config) {
     this.config = config;
     this.role = 'Form Design Specialist';
-    this.client = this.initializeClient();
+    this.safeAIClient = new SafeAIClient(config);
     
-    logger.info('FormBuilder Agent initialized', { 
+    logger.info('FormBuilder Agent initialized with SafeAIClient', { 
       agent: 'FormBuilderAgent',
       provider: config.provider 
     });
-  }
-
-  initializeClient() {
-    if (this.config.provider === 'azure') {
-      return new AzureOpenAI({
-        apiKey: this.config.apiKey,
-        endpoint: this.config.endpoint,
-        apiVersion: this.config.apiVersion
-      });
-    } else {
-      return new OpenAI({
-        apiKey: this.config.apiKey
-      });
-    }
   }
 
   /**
@@ -40,23 +25,21 @@ class FormBuilderAgent {
 
       const prompt = this.buildFormGenerationPrompt(description, requirements);
       
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert form designer with deep knowledge of UX/UI principles, form validation, and user experience optimization.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+      const aiResult = await this.safeAIClient.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are an expert form designer with deep knowledge of UX/UI principles, form validation, and user experience optimization.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const result = completion.choices[0].message.content;
+      const result = aiResult.response;
       
       logger.info('Form generation completed', { 
         hasResult: !!result,
@@ -82,23 +65,21 @@ class FormBuilderAgent {
 
       const prompt = this.buildOptimizationPrompt(existingForm, goals);
       
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a form optimization expert. Analyze forms and provide detailed optimization recommendations.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+      const aiResult = await this.safeAIClient.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are a form optimization expert. Analyze forms and provide detailed optimization recommendations.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const result = completion.choices[0].message.content;
+      const result = aiResult.response;
       
       logger.info('Form optimization completed');
 
@@ -121,23 +102,21 @@ class FormBuilderAgent {
 
       const prompt = this.buildValidationPrompt(formData);
       
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a form validation expert. Review forms for issues and provide detailed feedback.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+      const aiResult = await this.safeAIClient.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are a form validation expert. Review forms for issues and provide detailed feedback.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const result = completion.choices[0].message.content;
+      const result = aiResult.response;
       
       logger.info('Form validation completed');
 

@@ -1,45 +1,19 @@
-import OpenAI from 'openai';
-import { AzureOpenAI } from 'openai';
+import SafeAIClient from './safeAIClient.js';
 import logger from '../utils/logger.js';
 
 class ChatAssistantAgent {
   constructor(config) {
     this.config = config;
     this.role = 'Conversational AI Assistant';
-    this.client = this.initializeClient();
+    this.safeAIClient = new SafeAIClient(config);
     
     // Conversation memories for different sessions
     this.conversationMemories = new Map();
     
-    logger.info('ChatAssistant Agent initialized', { 
+    logger.info('ChatAssistant Agent initialized with SafeAIClient', { 
       agent: 'ChatAssistantAgent',
       provider: config.provider 
     });
-  }
-
-  initializeClient() {
-    if (this.config.provider === 'azure') {
-      logger.info('Initializing Azure OpenAI Client:', {
-        endpoint: this.config.endpoint,
-        apiVersion: this.config.apiVersion,
-        deployment: this.config.deployment,
-        hasApiKey: !!this.config.apiKey
-      });
-      
-      return new AzureOpenAI({
-        apiKey: this.config.apiKey,
-        endpoint: this.config.endpoint,
-        apiVersion: this.config.apiVersion
-      });
-    } else {
-      logger.info('Initializing OpenAI Client:', {
-        hasApiKey: !!this.config.apiKey
-      });
-      
-      return new OpenAI({
-        apiKey: this.config.apiKey
-      });
-    }
   }
 
   /**
@@ -120,14 +94,12 @@ Respond naturally and helpfully in ${context.language || 'English'}.`
       const recentHistory = memory.slice(-10);
       messages.push(...recentHistory);
 
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: messages,
+      const aiResult = await this.safeAIClient.createChatCompletion(messages, {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const response = completion.choices[0].message.content;
+      const response = aiResult.response;
       
       // Add assistant response to memory
       this.addToConversationMemory(conversationId, 'assistant', response);
@@ -169,16 +141,14 @@ Respond naturally and helpfully in ${context.language || 'English'}.`
         domain 
       });
 
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a knowledgeable assistant specializing in ${domain}. Answer the following query with accurate and comprehensive information.`
-          },
-          {
-            role: 'user',
-            content: `Query: ${query}
+      const aiResult = await this.safeAIClient.createChatCompletion([
+        {
+          role: 'system',
+          content: `You are a knowledgeable assistant specializing in ${domain}. Answer the following query with accurate and comprehensive information.`
+        },
+        {
+          role: 'user',
+          content: `Query: ${query}
 Domain: ${domain}
 
 Provide:
@@ -191,13 +161,13 @@ Provide:
 Make the response informative yet accessible, suitable for someone seeking to learn about this topic.
 
 Answer in a clear, structured format:`
-          }
-        ],
+        }
+      ], {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const result = completion.choices[0].message.content;
+      const result = aiResult.response;
       
       logger.info('Knowledge query processed successfully');
 
@@ -238,16 +208,14 @@ Answer in a clear, structured format:`
         `${msg.role}: ${msg.content}`
       ).join('\n');
 
-      const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a conversation analyst. Analyze conversations to understand patterns, user intent, and provide insights.'
-          },
-          {
-            role: 'user',
-            content: `Analyze the following conversation to understand patterns, user intent, and provide insights:
+      const aiResult = await this.safeAIClient.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are a conversation analyst. Analyze conversations to understand patterns, user intent, and provide insights.'
+        },
+        {
+          role: 'user',
+          content: `Analyze the following conversation to understand patterns, user intent, and provide insights:
 
 Conversation History: ${historyText}
 
@@ -277,13 +245,13 @@ Provide insights in the following format:
 
 ## Sentiment
 [Overall tone assessment]`
-          }
-        ],
+        }
+      ], {
         temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
+        maxTokens: this.config.maxTokens
       });
 
-      const result = completion.choices[0].message.content;
+      const result = aiResult.response;
       
       return this.parseAnalysisResult(result, conversationId);
     } catch (error) {

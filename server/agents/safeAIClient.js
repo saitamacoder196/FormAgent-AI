@@ -64,14 +64,29 @@ class SafeAIClient {
     }
 
     try {
-      logger.info('Attempting AI request with safe client', {
+      logger.info('SafeAIClient: Attempting AI request', {
         provider: this.config.provider,
         endpoint: this.config.endpoint,
-        deployment: this.config.deployment
+        deployment: this.config.deployment,
+        model: this.config.model,
+        apiVersion: this.config.apiVersion,
+        hasApiKey: !!this.config.apiKey,
+        messageCount: messages.length
+      });
+
+      // Log the exact request being made
+      const requestModel = this.config.provider === 'azure' ? this.config.deployment : this.config.model;
+      logger.info('SafeAIClient: Making OpenAI request', {
+        requestModel: requestModel,
+        requestParams: {
+          model: requestModel,
+          temperature: options.temperature || this.config.temperature || 0.7,
+          max_tokens: options.maxTokens || this.config.maxTokens || 2000
+        }
       });
 
       const completion = await this.client.chat.completions.create({
-        model: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
+        model: requestModel,
         messages: messages,
         temperature: options.temperature || this.config.temperature || 0.7,
         max_tokens: options.maxTokens || this.config.maxTokens || 2000,
@@ -80,7 +95,7 @@ class SafeAIClient {
 
       const response = completion.choices[0].message.content;
       
-      logger.info('AI request successful', {
+      logger.info('SafeAIClient: AI request successful', {
         responseLength: response?.length,
         usage: completion.usage
       });
@@ -93,14 +108,53 @@ class SafeAIClient {
       };
 
     } catch (error) {
-      logger.logError(error, { 
+      // COMPREHENSIVE ERROR LOGGING
+      logger.error('SafeAIClient: AI request failed - DETAILED ERROR INFO', {
         context: 'SafeAIClient.createChatCompletion',
         errorType: error.constructor.name,
+        errorMessage: error.message,
         status: error.status,
-        code: error.code
+        code: error.code,
+        type: error.type,
+        param: error.param,
+        configUsed: {
+          provider: this.config.provider,
+          endpoint: this.config.endpoint,
+          deployment: this.config.deployment,
+          model: this.config.model,
+          apiVersion: this.config.apiVersion,
+          hasApiKey: !!this.config.apiKey,
+          apiKeyPreview: this.config.apiKey ? this.config.apiKey.substring(0, 10) + '...' : 'MISSING'
+        },
+        requestDetails: {
+          modelUsed: this.config.provider === 'azure' ? this.config.deployment : this.config.model,
+          messageCount: messages.length,
+          options: options
+        },
+        fullErrorStack: error.stack
       });
 
+      // Log specific guidance for common errors
+      if (error.status === 404) {
+        logger.error('SafeAIClient: 404 Error Analysis', {
+          possibleCauses: [
+            'Deployment name incorrect or not found',
+            'Model not deployed in Azure',
+            'Endpoint URL incorrect',
+            'API version not supported',
+            'Resource not found in specified region'
+          ],
+          checkList: [
+            `Endpoint: ${this.config.endpoint}`,
+            `Deployment: ${this.config.deployment}`,
+            `API Version: ${this.config.apiVersion}`,
+            `Full URL would be: ${this.config.endpoint}openai/deployments/${this.config.deployment}/chat/completions?api-version=${this.config.apiVersion}`
+          ]
+        });
+      }
+
       // Always return a fallback response, never throw
+      logger.info('SafeAIClient: Returning fallback response');
       return this.createFallbackResponse(messages, error);
     }
   }
